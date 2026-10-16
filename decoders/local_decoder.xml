@@ -1,0 +1,15 @@
+<!--
+  Decoder for Suricata EVE JSON lines that OPNsense forwards to Wazuh by syslog.
+  Install: /var/ossec/etc/decoders/local_decoder.xml on the manager.
+  Used by rules 100300 and 100301.
+-->
+
+<decoder name="suricata-eve">
+  <program_name>^suricata</program_name>
+</decoder>
+
+<decoder name="suricata-eve-json">
+  <parent>suricata-eve</parent>
+  <prematch>^\s*{\s*"</prematch>
+  <plugin_decoder>JSON_Decoder</plugin_decoder>
+</decoder>

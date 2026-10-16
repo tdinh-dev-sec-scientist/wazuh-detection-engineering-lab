@@ -1,0 +1,251 @@
+<!--
+  Custom Wazuh rules for the home SOC lab (Wazuh 4.14.8).
+
+  Install: copy this file to /var/ossec/etc/rules/local_rules.xml on the manager,
+  run /var/ossec/bin/wazuh-analysisd -t, then restart wazuh-manager.
+  The Suricata decoder lives in decoders/local_decoder.xml.
+
+  Every rule ID maps to a test in docs/detection-evidence-log.md.
+  Lab specific values: 10.10.0.0/16 in rule 100200 and the NetBIOS name CORP in rule 100450.
+-->
+
+<!-- T1082 System Information Discovery -->
+<group name="local,sysmon,windows,">
+  <rule id="100100" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\systeminfo\.exe$</field>
+    <description>Sysmon: systeminfo.exe executed (System Information Discovery)</description>
+    <mitre>
+      <id>T1082</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- Firewall blocks between lab segments -->
+<group name="local,firewall,">
+  <rule id="100200" level="6">
+    <if_sid>87701</if_sid>
+    <srcip>10.10.0.0/16</srcip>
+    <dstip>10.10.0.0/16</dstip>
+    <description>Firewall blocked traffic between internal lab segments</description>
+  </rule>
+</group>
+
+<!-- T1046 Network Service Discovery (Suricata through OPNsense syslog) -->
+<group name="local,suricata,ids,">
+  <rule id="100300" level="3">
+    <decoded_as>suricata-eve</decoded_as>
+    <field name="event_type">^alert$</field>
+    <description>Suricata: $(alert.signature)</description>
+  </rule>
+
+  <rule id="100301" level="7">
+    <if_sid>100300</if_sid>
+    <field name="alert.signature" type="pcre2">^ET SCAN</field>
+    <description>Suricata: network scan detected ($(alert.signature)) from $(src_ip) to $(dest_ip)</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- T1136.002 Domain Account Creation (burst of 10 within 60 seconds) -->
+<group name="local,windows,ad,">
+  <rule id="100400" level="10" frequency="10" timeframe="60">
+    <if_matched_sid>60109</if_matched_sid>
+    <same_field>win.system.eventID</same_field>
+    <description>Mass account creation detected: 10+ accounts created within 60 seconds</description>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- T1053.005 Scheduled Task -->
+<group name="local,sysmon,windows,">
+  <rule id="100500" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\schtasks\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s[-/]create(\s|$)</field>
+    <description>Sysmon: scheduled task created via schtasks.exe (Persistence)</description>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- T1136.001 Local Account Creation -->
+<group name="local,windows,ad,">
+  <rule id="100450" level="8">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <field name="win.eventdata.targetDomainName" type="pcre2">^(?!CORP$).+</field>
+    <description>Local user account created on a workstation ($(win.eventdata.targetUserName))</description>
+    <mitre>
+      <id>T1136.001</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- T1070.001 Clear Windows Event Logs -->
+<group name="local,windows,defense_evasion,">
+  <rule id="100550" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\wevtutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s(cl|clear-log)\s</field>
+    <description>Sysmon: wevtutil used to clear an event log</description>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="100551" level="8">
+    <if_sid>63103, 63104</if_sid>
+    <description>Windows event log cleared (possible defense evasion)</description>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- T1087.001, T1069.001, T1555.004, T1033 discovery commands.
+     Wazuh stores the command line JSON escaped, so quotes and backslashes are matched loosely.
+     Rules with the same parent are evaluated in file order and the first match wins. -->
+<group name="local,windows,discovery,">
+  <rule id="100600" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(?!.*\s/(add|delete)(\s|$))(user|users|accounts)(\s|$)</field>
+    <description>Sysmon: local account enumeration with net.exe</description>
+    <mitre>
+      <id>T1087.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="100601" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(?!.*\s/(add|delete)(\s|$))(localgroup|group)(\s|$)</field>
+    <description>Sysmon: local group enumeration with net.exe</description>
+    <mitre>
+      <id>T1069.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="100602" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\cmdkey\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s/list</field>
+    <description>Sysmon: stored credentials listed with cmdkey.exe</description>
+    <mitre>
+      <id>T1555.004</id>
+    </mitre>
+  </rule>
+
+  <rule id="100603" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\(query|quser)\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(\suser(\s|$)|quser)</field>
+    <description>Sysmon: logged on users enumerated</description>
+    <mitre>
+      <id>T1033</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- T1105 Ingress Tool Transfer. 100700 reads Sysmon, 100701 reads Security 4688. -->
+<group name="local,windows,command_and_control,">
+  <rule id="100700" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)certutil(\.exe)?\W+.*[-/](urlcache|verifyctl)(\s|$)</field>
+    <description>Sysmon: certutil used to download a file</description>
+    <mitre><id>T1105</id></mitre>
+  </rule>
+  <rule id="100701" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)certutil(\.exe)?\W+.*[-/](urlcache|verifyctl)(\s|$)</field>
+    <description>Security 4688: certutil used to download a file</description>
+    <mitre><id>T1105</id></mitre>
+  </rule>
+</group>
+
+<!-- T1021.002 SMB/Windows Admin Shares. Backslashes are stored doubled, hence \\{2,4} and \\{1,2}. -->
+<group name="local,windows,lateral_movement,">
+  <rule id="100710" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\\{2,4}[^\\\s]+\\{1,2}(admin|[a-z])\$(\\|\s|$)</field>
+    <description>Sysmon: command line uses a Windows administrative share</description>
+    <mitre><id>T1021.002</id></mitre>
+  </rule>
+  <rule id="100711" level="6">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\\{2,4}[^\\\s]+\\{1,2}(admin|[a-z])\$(\\|\s|$)</field>
+    <description>Security 4688: command line uses a Windows administrative share</description>
+    <mitre><id>T1021.002</id></mitre>
+  </rule>
+</group>
+
+<!-- T1218 System Binary Proxy Execution (wlrmdr.exe) -->
+<group name="local,windows,defense_evasion,">
+  <rule id="100720" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)wlrmdr(\.exe)?\W.*[-/]u(\s|$)</field>
+    <description>Sysmon: wlrmdr.exe used to launch another program</description>
+    <mitre><id>T1218</id></mitre>
+  </rule>
+  <rule id="100721" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)wlrmdr(\.exe)?\W.*[-/]u(\s|$)</field>
+    <description>Security 4688: wlrmdr.exe used to launch another program</description>
+    <mitre><id>T1218</id></mitre>
+  </rule>
+  <rule id="100722" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.parentProcessName" type="pcre2">(?i)\\wlrmdr\.exe$</field>
+    <description>Security 4688: process started by wlrmdr.exe</description>
+    <mitre><id>T1218</id></mitre>
+  </rule>
+</group>
+
+<!-- T1036.003 Renamed copies of systeminfo.exe, schtasks.exe and wevtutil.exe.
+     They match the original file name from the PE header and skip events whose image
+     already ends in the tool's own name, so a normal run still alerts once. -->
+<group name="local,windows,renamed_binary,">
+  <rule id="100101" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.originalFileName" type="pcre2">(?i)^(sysinfo|systeminfo)\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2" negate="yes">(?i)\\systeminfo\.exe$</field>
+    <description>Sysmon: systeminfo.exe running under a different file name (masquerading)</description>
+    <mitre>
+      <id>T1082</id>
+      <id>T1036.003</id>
+    </mitre>
+    <group>discovery,defense_evasion,</group>
+  </rule>
+
+  <rule id="100501" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.originalFileName" type="pcre2">(?i)^schtasks\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2" negate="yes">(?i)\\schtasks\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s[-/]create(\s|$)</field>
+    <description>Sysmon: scheduled task created via renamed schtasks.exe (Persistence, masquerading)</description>
+    <mitre>
+      <id>T1053.005</id>
+      <id>T1036.003</id>
+    </mitre>
+    <group>persistence,defense_evasion,</group>
+  </rule>
+
+  <rule id="100552" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.originalFileName" type="pcre2">(?i)^wevtutil\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2" negate="yes">(?i)\\wevtutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s(cl|clear-log)\s</field>
+    <description>Sysmon: event log cleared via renamed wevtutil.exe (masquerading)</description>
+    <mitre>
+      <id>T1070.001</id>
+      <id>T1036.003</id>
+    </mitre>
+    <group>defense_evasion,</group>
+  </rule>
+</group>

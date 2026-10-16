@@ -1,0 +1,10 @@
+<!--
+  Add inside <ossec_config> in C:\Program Files (x86)\ossec-agent\ossec.conf on WS01,
+  then restart the Wazuh agent service. Without it the agent does not collect
+  Microsoft Defender events, so Defender detections never reach Wazuh.
+  The default ruleset already has rules for this channel (for example 62123).
+-->
+<localfile>
+  <location>Microsoft-Windows-Windows Defender/Operational</location>
+  <log_format>eventchannel</log_format>
+</localfile>
