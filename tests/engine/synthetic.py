@@ -132,7 +132,7 @@ SYSMON_RULES = {"100100", "100101", "100500", "100501", "100550", "100552", "100
 SEC4688_RULES = {"100701", "100711", "100721", "100722"}
 
 SURICATA_LINE = (
-    '<134>Oct 15 15:40:51 FW01.corp.lab suricata[53242]: {"timestamp":"2026-10-15T15:40:51.123456-0400",'
+    'Oct 15 15:40:51 FW01.corp.lab suricata[53242]: {"timestamp":"2026-10-15T15:40:51.123456-0400",'
     '"flow_id":1234567890123,"in_iface":"igb4","event_type":"alert","src_ip":"10.10.50.181","src_port":41352,'
     '"dest_ip":"10.10.30.149","dest_port":1433,"proto":"TCP","alert":{"action":"allowed","gid":1,'
     '"signature_id":2010935,"rev":3,"signature":"ET SCAN Suspicious inbound to MSSQL port 1433",'
