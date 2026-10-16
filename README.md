@@ -15,7 +15,7 @@ A home SOC lab where I attack a Windows domain, check what Wazuh detects out of 
 | Gaps closed | 11 techniques where the defaults missed, mislabeled or under-rated the activity |
 | Already covered | 4 techniques the default ruleset handled, confirmed and documented |
 | Evidence | 54 screenshots linked from the [evidence log](docs/detection-evidence-log.md) |
-| Verification | Three levels: 47 pattern samples, 56 engine cases run inside a real Wazuh 4.14.8 manager on every push, and live attack tests with screenshots. [How and where each rule is verified](docs/detection-quality.md) |
+| Verification | Three levels: 47 pattern samples, 78 engine cases (22 on real captured events, 56 synthetic) run inside a real Wazuh 4.14.8 manager on every push, and live attack tests with screenshots. [How and where each rule is verified](docs/detection-quality.md) |
 
 ## Read these first
 

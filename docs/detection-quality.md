@@ -7,7 +7,7 @@ What the 23 rules have been shown to do, how each claim was checked, and where t
 | Level | What it proves | Where it runs | What it cannot prove |
 | --- | --- | --- | --- |
 | 1. Pattern test | A rule's field patterns match the sample and skip near misses | `validate` workflow, [tests/test_rules.py](../tests/test_rules.py), 47 samples (25 positive, 22 negative) | Parent rules, decoders, frequency and the order of sibling rules |
-| 2. Engine test | The full event reaches the intended rule inside a real Wazuh 4.14.8 `wazuh-analysisd`, with parents, decoders and thresholds | `engine` workflow, [tests/engine](../tests/engine), 56 cases | The Windows eventchannel decoder (see below) and the quality of the sample |
+| 2. Engine test | The full event reaches the intended rule inside a real Wazuh 4.14.8 `wazuh-analysisd`, with parents, decoders and thresholds | `engine` workflow, [tests/engine](../tests/engine), 78 cases (22 real captured events, 56 synthetic) | The Windows eventchannel decoder (see below) and the quality of the sample |
 | 3. Live test | The attack ran in the lab and the alert appeared in the dashboard | [Evidence log](detection-evidence-log.md), 54 screenshots | Repeatability. Each live test was run once or a few times |
 
 The engine job installs the Wazuh manager package, copies in `rules/` and `decoders/`, and sends every case through `wazuh-logtest`. It also checks the statements this repository makes about Wazuh's default rules against the stock ruleset in the same package ([baseline_claims.py](../tests/engine/baseline_claims.py)).
