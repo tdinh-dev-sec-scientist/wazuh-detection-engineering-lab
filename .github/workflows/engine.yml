@@ -1,0 +1,76 @@
+name: engine
+
+# Runs the custom rules inside a real Wazuh manager (wazuh-analysisd), not just against regexes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WAZUH_VERSION: "4.14.8"
+
+jobs:
+  wazuh-engine:
+    name: Rules inside Wazuh 4.14.8
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Wazuh manager
+        run: |
+          curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | sudo gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import
+          sudo chmod 644 /usr/share/keyrings/wazuh.gpg
+          echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | sudo tee /etc/apt/sources.list.d/wazuh.list
+          sudo apt-get update -qq
+          version=$(apt-cache madison wazuh-manager | awk '{print $3}' | grep "^${WAZUH_VERSION}-" | head -1)
+          echo "installing wazuh-manager=$version"
+          sudo apt-get install -y -qq "wazuh-manager=$version"
+
+      - name: Install the lab rules and decoder
+        run: |
+          sudo cp rules/local_rules.xml /var/ossec/etc/rules/local_rules.xml
+          sudo cp decoders/local_decoder.xml /var/ossec/etc/decoders/local_decoder.xml
+          sudo chown wazuh:wazuh /var/ossec/etc/rules/local_rules.xml /var/ossec/etc/decoders/local_decoder.xml
+          sudo python3 scripts/prepare_engine_tests.py
+
+      - name: Syntax check with wazuh-analysisd -t
+        run: |
+          sudo /var/ossec/bin/wazuh-analysisd -t; echo "exit code: $?"
+          sudo /var/ossec/bin/wazuh-analysisd -t
+
+      - name: Claims about the default ruleset
+        run: python3 tests/engine/baseline_claims.py /var/ossec/ruleset/rules
+
+      - name: Start wazuh-analysisd
+        run: |
+          sudo /var/ossec/bin/wazuh-control start || true
+          sudo /var/ossec/bin/wazuh-control status || true
+          for i in $(seq 1 30); do
+            if sudo test -S /var/ossec/queue/sockets/logtest; then echo "logtest socket is up"; break; fi
+            sleep 2
+          done
+          sudo ls -l /var/ossec/queue/sockets/ || true
+
+      - name: Engine tests
+        run: sudo python3 tests/engine/run_engine_tests.py --out engine-results
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f engine-results/results.md ]; then
+            { echo "### Engine tests (Wazuh ${WAZUH_VERSION})"; echo; cat engine-results/results.md; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Manager log on failure
+        if: failure()
+        run: sudo tail -n 80 /var/ossec/logs/ossec.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: engine-results
+          path: engine-results/
