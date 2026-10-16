@@ -9,6 +9,8 @@ Checks:
   5. docs/rule-catalog.md lists exactly the rules in the XML.
   6. mitre/attack-navigator-layer.json is valid JSON and covers every technique used by a rule.
   7. Every screenshot referenced in the docs exists and every screenshot file is referenced.
+  8. docs/detection-quality.md has a row for every rule.
+  9. Every engine fixture under tests/engine/fixtures/real is valid and names an existing rule.
 
 Exit code 0 when all checks pass, 1 otherwise.
 """
@@ -94,13 +96,32 @@ def main():
     shots_dir = ROOT / "screenshots"
     on_disk = {p.name for p in shots_dir.glob("*.png")}
     referenced = set()
-    for doc in (ROOT / "docs").glob("*.md"):
-        for name in re.findall(r"\(\.\./screenshots/([^)]+)\)", doc.read_text(encoding="utf-8")):
+    for doc in (ROOT / "docs").rglob("*.md"):
+        for name in re.findall(r"\((?:\.\./)+screenshots/([^)]+)\)", doc.read_text(encoding="utf-8")):
             referenced.add(name)
     for name in sorted(referenced - on_disk):
         fail(f"docs reference a missing screenshot: {name}")
     for name in sorted(on_disk - referenced):
         fail(f"screenshot is not referenced by any doc: {name}")
+
+    # The quality page must cover every rule.
+    quality = (ROOT / "docs" / "detection-quality.md").read_text(encoding="utf-8")
+    quality_ids = set(re.findall(r"^\| (\d{6}) \|", quality, flags=re.M))
+    if quality_ids != set(rule_ids):
+        fail("docs/detection-quality.md and rules/local_rules.xml disagree: "
+             f"only in quality page {sorted(quality_ids - set(rule_ids))}, "
+             f"only in XML {sorted(set(rule_ids) - quality_ids)}")
+
+    # Captured engine fixtures must be well formed and refer to real rules.
+    for path in sorted((ROOT / "tests" / "engine" / "fixtures" / "real").glob("*.json")):
+        try:
+            fixture = json.loads(path.read_text(encoding="utf-8"))
+            if fixture["rule"] not in rule_ids:
+                fail(f"{path.name}: unknown rule {fixture['rule']}")
+            if not fixture["event"] or "rule_id" not in fixture["expect"]:
+                fail(f"{path.name}: missing event or expectation")
+        except (ValueError, KeyError) as exc:
+            fail(f"{path.name}: {exc}")
 
     print(f"{len(rule_ids)} rules, {len(techniques)} techniques, "
           f"{len(on_disk)} screenshots checked")

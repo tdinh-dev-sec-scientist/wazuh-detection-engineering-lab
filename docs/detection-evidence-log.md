@@ -4,7 +4,7 @@ Truong Dinh, University of South Florida
 
 Attack simulations against the lab, mostly Atomic Red Team tests on WS01, the Wazuh alerts they produced, and the custom rules written where the defaults missed.
 
-I ran fifteen tests against this lab and checked what Wazuh 4.14.8 alerts on out of the box. In eleven of them the default rules missed the activity, gave it no technique, or gave it the wrong one, so I wrote twenty-three custom rules and one decoder. Four techniques, T1547.001, T1110, T1059.001 and T1543.003, were already covered.
+I ran fifteen tests against this lab and checked what Wazuh 4.14.8 alerts on out of the box. In eleven of them the default rules missed the activity, gave it no matching technique, or gave it the wrong one, so I wrote twenty-three custom rules and one decoder. Four techniques, T1547.001, T1110, T1059.001 and T1543.003, were already covered.
 
 ## Coverage at a glance
 
@@ -17,7 +17,7 @@ I ran fifteen tests against this lab and checked what Wazuh 4.14.8 alerts on out
 | T1053.005 Scheduled Task | Generic level 3 | 100500, 100501 | `/create` and `-create`, not `/delete` |
 | T1547.001 Registry Run Keys | 92302, level 6 | None needed | None found in this test |
 | T1136.001 Local Account Creation | 60109 with the wrong technique | 100450 | Local accounts only |
-| T1070.001 Clear Windows Event Logs | 63104, no technique | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
+| T1070.001 Clear Windows Event Logs | 63104, T1070 only (no sub-technique) | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
 | T1110 Brute Force | 60122 and 60204, T1110 | None needed | Parent technique only, one source and one account tested |
 | T1059.001 PowerShell | 92057, level 12, T1059.001 | None needed | One encoded command tested; script block text (event 4104) not alerted |
 | T1087.001 Local Account Discovery | 92033, 92036, 92032 at level 3, no T1087.001 | 100600 to 100603 | Process commands only; PowerShell cmdlets such as Get-LocalUser are not matched |
@@ -25,7 +25,7 @@ I ran fifteen tests against this lab and checked what Wazuh 4.14.8 alerts on out
 | T1555.004 Credentials from Password Stores: Windows Credential Manager | Generic level 3 alerts (92032); the technique ID was not queried | 100602 | cmdkey /list only; other ways to read stored credentials are not matched |
 | T1033 System Owner/User Discovery | Generic level 3 alerts (92032); the technique ID was not queried | 100603 | query user and quser only; whoami.exe is not matched |
 | T1105 Ingress Tool Transfer | 67027, level 3, no technique; Defender block alerts at level 12 (62123) once the agent collects its channel | 100700, 100701 | Only certutil -urlcache and -verifyctl matched; when Defender blocks the process only 100701 fires |
-| T1021.002 SMB/Windows Admin Shares | 92052 (level 4) and 67027 (level 3), no technique | 100710, 100711 | Command lines only, tested against the local share; share access events 5140 and 5145 raised no alert |
+| T1021.002 SMB/Windows Admin Shares | 92052 (level 4) and 67027 (level 3), no T1021.002 | 100710, 100711 | Command lines only, tested against the local share; share access events 5140 and 5145 raised no alert |
 | T1543.003 Windows Service | 61138 (level 5) and 92307 (level 3), T1543.003 | None needed | Levels are low; only service creation with sc.exe was tested |
 | T1218 System Binary Proxy Execution | No alert with the technique | 100720, 100721, 100722 | 100720 and 100721 match wlrmdr.exe with -u; 100722 matches its child processes in the Security log only |
 
@@ -422,13 +422,13 @@ The Atomic Red Team definition file for T1070.001 is missing from the atomics fo
 
 ### Baseline: partial coverage
 
-Default rule 63104 ("A Windows log file was cleared", level 5) fired on WS01 at 17:23:30 from event 104. The query `rule.mitre.id: T1070.001` returned no results, so the alert carried no technique. A Sysmon query for the `wevtutil.exe` process also returned no alert, although `Get-WinEvent` showed Sysmon had logged event 1 with the full command line.
+Default rule 63104 ("A Windows log file was cleared", level 5) fired on WS01 at 17:23:30 from event 104. The query `rule.mitre.id: T1070.001` returned no results. The stock rule maps to the parent technique T1070 only, which I confirmed in the rule definition (the same in the 4.14.8 package), so the alert had no sub-technique. A Sysmon query for the `wevtutil.exe` process also returned no alert, although `Get-WinEvent` showed Sysmon had logged event 1 with the full command line.
 
 ![Baseline: event 104 alert](../screenshots/t1070-1-baseline-63104.png)
 
 *Baseline: event 104 on WS01 matched by default rule 63104 at level 5, 17:23:30.*
 
-### Gap: no technique and no process alert
+### Gap: no sub-technique and no process alert
 
 The log clearing was noticed only after the fact and at a low level. The command that caused it was never alerted. Sysmon labelled the event `technique_id=T1685.005`. The ATT&CK site now lists Clear Windows Event Logs under [T1685.005](https://attack.mitre.org/techniques/T1685/005), so T1070.001 appears to be the older ID. Both rules below use T1070.001, the ID the default Wazuh rules and common detection write-ups still use.
 
@@ -764,7 +764,7 @@ The command was still logged. Searching `data.win.eventdata.commandLine: *ADMIN$
 
 ![Alerts containing the admin share path](../screenshots/t1021-2-baseline-commandline.png)
 
-*Rules 92052 (level 4) and 67027 (level 3) carry the command line but no technique.*
+*Rules 92052 (level 4) and 67027 (level 3) carry the command line but not T1021.002.*
 
 The query `data.win.eventdata.shareName: *ADMIN*` returned no results, so no share access event raised an alert. I did not check whether the audit policy for file shares is enabled.
 

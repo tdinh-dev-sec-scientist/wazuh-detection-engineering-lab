@@ -1,6 +1,7 @@
 # Wazuh Detection Engineering Lab
 
 [![validate](https://github.com/tdinh-dev-sec-scientist/wazuh-detection-engineering-lab/actions/workflows/validate.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/wazuh-detection-engineering-lab/actions/workflows/validate.yml)
+[![engine](https://github.com/tdinh-dev-sec-scientist/wazuh-detection-engineering-lab/actions/workflows/engine.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/wazuh-detection-engineering-lab/actions/workflows/engine.yml)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.14.8-005571)
 ![MITRE ATT&CK](https://img.shields.io/badge/MITRE%20ATT%26CK-18%20techniques-b22222)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -14,7 +15,7 @@ A home SOC lab where I attack a Windows domain, check what Wazuh detects out of 
 | Gaps closed | 11 techniques where the defaults missed, mislabeled or under-rated the activity |
 | Already covered | 4 techniques the default ruleset handled, confirmed and documented |
 | Evidence | 54 screenshots linked from the [evidence log](docs/detection-evidence-log.md) |
-| Automation | CI checks the XML, the docs, the ATT&CK layer and 47 regression samples on every push |
+| Verification | Three levels: 47 pattern samples, 56 engine cases run inside a real Wazuh 4.14.8 manager on every push, and live attack tests with screenshots. [How and where each rule is verified](docs/detection-quality.md) |
 
 ## Read these first
 
@@ -24,6 +25,7 @@ The cases below changed how I write rules. Each one links to the evidence.
 - **Wazuh stores command lines escaped.** Quotes arrive as `\"` and backslashes arrive doubled, so anchored patterns silently stop matching. I confirmed the stored form by decoding a real event with `wazuh-logtest`. [Details](docs/detection-evidence-log.md#t1021002-smbwindows-admin-shares)
 - **A blocked process can vanish from Sysmon.** Defender stopped `certutil` at process creation, Sysmon logged nothing, and the Sysmon rule stayed silent. Security event 4688 still recorded the launcher, so each such rule has a 4688 twin. [Details](docs/detection-evidence-log.md#why-rule-100700-stayed-silent)
 - **Image-path rules miss renamed binaries.** Copies of `systeminfo.exe`, `schtasks.exe` and `wevtutil.exe` under other names evaded the first rules. Rules 100101, 100501 and 100552 match the original file name from the PE header. [Details](docs/detection-evidence-log.md#renamed-binaries)
+- **`wazuh-logtest` cannot run Windows rules.** It skips the eventchannel decoder, so a pasted Windows event falls to a generic syslog rule. I found this in the Wazuh source and test the rules in a real manager the way Wazuh's own ruleset tests do. [Details](docs/detection-quality.md#how-a-rule-is-verified)
 - **Thresholds need a boundary test.** The mass account creation rule stays silent at 9 accounts in 60 seconds and fires at 10. [Details](docs/detection-evidence-log.md#boundary-test)
 
 ## Lab
@@ -66,7 +68,7 @@ The lab runs in VMware Fusion Pro on an Intel MacBook Pro. Each segment is an is
 | WAZUH | SIEM (manager, indexer, dashboard), Wazuh 4.14.8 | Ubuntu Server |
 | Kali | Attacker box, powered on only when needed | Kali Linux |
 
-Log sources on DC01 and WS01 reach Wazuh through the Wazuh agent: Sysmon (sysmon-modular configuration, deployed by GPO), Security event 4688 with command line, and PowerShell script block logging (event 4104), all enabled by GPO. Atomic Red Team is installed on WS01 only, with a Defender exclusion on `C:\AtomicRedTeam`.
+Log sources on DC01 and WS01 reach Wazuh through the Wazuh agent: Sysmon (sysmon-modular configuration, deployed by GPO), Security event 4688 with command line, and PowerShell script block logging (event 4104), all enabled by GPO. Atomic Red Team is installed on WS01 only, with a Defender exclusion on `C:\AtomicRedTeam`, and the Atomic tests run locally there. Kali is used only for the two network tests, the nmap scan and the SMB logon failures.
 
 ## Coverage
 
@@ -79,7 +81,7 @@ Log sources on DC01 and WS01 reach Wazuh through the Wazuh agent: Sysmon (sysmon
 | T1053.005 Scheduled Task | Generic level 3 | 100500, 100501 | `/create` and `-create`, not `/delete` |
 | T1547.001 Registry Run Keys | 92302, level 6 | None needed | None found in this test |
 | T1136.001 Local Account Creation | 60109 with the wrong technique | 100450 | Local accounts only |
-| T1070.001 Clear Windows Event Logs | 63104, no technique | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
+| T1070.001 Clear Windows Event Logs | 63104, T1070 only (no sub-technique) | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
 | T1110 Brute Force | 60122 and 60204, T1110 | None needed | Parent technique only, one source and one account tested |
 | T1059.001 PowerShell | 92057, level 12, T1059.001 | None needed | One encoded command tested; script block text (event 4104) not alerted |
 | T1087.001 Local Account Discovery | 92033, 92036, 92032 at level 3, no T1087.001 | 100600 to 100603 | Process commands only; PowerShell cmdlets such as Get-LocalUser are not matched |
@@ -87,7 +89,7 @@ Log sources on DC01 and WS01 reach Wazuh through the Wazuh agent: Sysmon (sysmon
 | T1555.004 Credentials from Password Stores: Windows Credential Manager | Generic level 3 alerts (92032); the technique ID was not queried | 100602 | cmdkey /list only; other ways to read stored credentials are not matched |
 | T1033 System Owner/User Discovery | Generic level 3 alerts (92032); the technique ID was not queried | 100603 | query user and quser only; whoami.exe is not matched |
 | T1105 Ingress Tool Transfer | 67027, level 3, no technique; Defender block alerts at level 12 (62123) once the agent collects its channel | 100700, 100701 | Only certutil -urlcache and -verifyctl matched; when Defender blocks the process only 100701 fires |
-| T1021.002 SMB/Windows Admin Shares | 92052 (level 4) and 67027 (level 3), no technique | 100710, 100711 | Command lines only, tested against the local share; share access events 5140 and 5145 raised no alert |
+| T1021.002 SMB/Windows Admin Shares | 92052 (level 4) and 67027 (level 3), no T1021.002 | 100710, 100711 | Command lines only, tested against the local share; share access events 5140 and 5145 raised no alert |
 | T1543.003 Windows Service | 61138 (level 5) and 92307 (level 3), T1543.003 | None needed | Levels are low; only service creation with sc.exe was tested |
 | T1218 System Binary Proxy Execution | No alert with the technique | 100720, 100721, 100722 | 100720 and 100721 match wlrmdr.exe with -u; 100722 matches its child processes in the Security log only |
 
@@ -107,12 +109,17 @@ rules/local_rules.xml          23 custom rules
 decoders/local_decoder.xml     Suricata EVE JSON decoder
 configs/                       Agent setting that collects Microsoft Defender events
 docs/detection-evidence-log.md Full write-up, one section per test, with screenshots
+docs/detection-quality.md      How each rule is verified, expected against observed, known misses
 docs/rule-catalog.md           Every rule with level, technique, log source and evidence link
 docs/test-matrix.md            One row per test
 mitre/                         ATT&CK Navigator layer
 screenshots/                   Evidence for every claim in the log
 scripts/validate_repo.py       Consistency checks used by CI
-tests/                         Regression samples for the rule patterns
+scripts/prepare_engine_tests.py  Makes a throwaway manager accept Windows events in logtest
+scripts/extract_fixtures.py    Captures real events from Wazuh alerts as test fixtures
+scripts/chain_timeline.py      Alert timeline for a time window
+scripts/Export-ChainEvents.ps1 What a Windows endpoint logged in a time window
+tests/                         Pattern samples (tests/cases.py) and engine tests (tests/engine/)
 ```
 
 ## Use the rules
@@ -135,7 +142,7 @@ python3 scripts/validate_repo.py
 python3 -m unittest discover -s tests -v
 ```
 
-The regression tests run each rule's field patterns against sample events in the form Wazuh stores them, including harmless near misses. They use Python's `re` in place of PCRE2 and do not evaluate parent conditions such as `if_group`, so `wazuh-logtest` is still the final check.
+The pattern tests run each rule's field patterns against sample events in the form Wazuh stores them, including harmless near misses. They use Python's `re` in place of PCRE2 and do not evaluate parent conditions such as `if_group`. The engine workflow closes that gap: it installs Wazuh 4.14.8, loads the rules and sends every sample through the real `wazuh-analysisd`, including the frequency rule at 9 and 10 accounts. To run it on a test VM with a manager installed, apply `scripts/prepare_engine_tests.py`, then `sudo python3 tests/engine/run_engine_tests.py`.
 
 ## Limits
 
