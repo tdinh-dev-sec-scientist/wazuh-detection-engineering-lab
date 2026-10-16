@@ -8,6 +8,7 @@ Run with the path to the stock rules (default /var/ossec/ruleset/rules):
 Every row of the coverage table that says what the default ruleset does is backed by an
 assertion here, so a wording like "no technique" cannot drift from the real rule definition.
 """
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -70,6 +71,8 @@ def main():
     print(f"{len(CLAIMS) + 1} claims about the default ruleset checked in {rules_dir}")
     for message in failures:
         print("  FAIL", message)
+        if os.environ.get("GITHUB_ACTIONS"):
+            print(f"::error::{message}")
     return 1 if failures else 0
 
 

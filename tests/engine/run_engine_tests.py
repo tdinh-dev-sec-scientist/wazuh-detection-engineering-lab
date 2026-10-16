@@ -18,6 +18,7 @@ Exit code 0 when every case passes.
 """
 import argparse
 import json
+import os
 import socket
 import struct
 import sys
@@ -132,9 +133,16 @@ def main():
                f"({len(real)} on real captured events, {len(results) - len(real)} synthetic).")
     (out_dir / "results.md").write_text(summary + "\n\n" + "\n".join(lines) + "\n", encoding="utf-8")
     print(summary)
+    annotate = bool(os.environ.get("GITHUB_ACTIONS"))
+    shown = 0
     for r in results:
         if not r["passed"]:
             print(f"  FAIL {r['case']}: {'; '.join(r['problems'])}")
+            if annotate and shown < 9:
+                shown += 1
+                print(f"::error::{r['case']}: {'; '.join(r['problems'])}"[:900])
+    if annotate:
+        print(f"::notice::{summary}")
     return 0 if passed == len(results) else 1
 
 
