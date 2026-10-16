@@ -6,8 +6,8 @@ One continuous session that strings together tests already documented in the [ev
 
 1. On WS01, open an elevated PowerShell as `CORP\adm.truong` and note the start time:
    `Get-Date -Format "yyyy-MM-dd HH:mm"`
-2. On WS01, allow SMB from Kali only, temporarily:
-   `New-NetFirewallRule -DisplayName "TEMP SMB from Kali" -Direction Inbound -Protocol TCP -LocalPort 445 -RemoteAddress 10.10.50.181 -Action Allow`
+2. On Kali, run `ip -4 addr show` and use that address below. It changed once during the first session (DHCP) and the first SMB run timed out because of it. On WS01, allow SMB from Kali only, temporarily:
+   `New-NetFirewallRule -DisplayName "TEMP SMB from Kali" -Direction Inbound -Protocol TCP -LocalPort 445 -RemoteAddress <Kali address> -Action Allow`
 3. Download the endpoint export script on WS01:
    `Invoke-WebRequest https://raw.githubusercontent.com/tdinh-dev-sec-scientist/wazuh-detection-engineering-lab/main/scripts/Export-ChainEvents.ps1 -OutFile C:\Users\Public\Export-ChainEvents.ps1`
 
@@ -33,7 +33,7 @@ systeminfo | Out-Null
 Invoke-AtomicTest T1105 -TestNumbers 7
 Invoke-AtomicTest T1053.005 -TestNumbers 1
 Invoke-AtomicTest T1547.001 -TestNumbers 1
-Invoke-AtomicTest T1136.001 -TestNumbers 4     # with the compliant password, as in the earlier test
+Invoke-AtomicTest T1136.001 -TestNumbers 4     # when asked for the password, type a 12 to 14 character one that meets the domain policy; do not paste it anywhere
 Invoke-AtomicTest T1021.002 -TestNumbers 4
 Invoke-AtomicTest T1218 -TestNumbers 16
 ```
@@ -56,6 +56,7 @@ wevtutil cl Application
 Invoke-AtomicTest T1053.005 -TestNumbers 1 -Cleanup
 Invoke-AtomicTest T1547.001 -TestNumbers 1 -Cleanup
 Invoke-AtomicTest T1136.001 -TestNumbers 4 -Cleanup
+Invoke-AtomicTest T1021.002 -TestNumbers 4 -Cleanup
 Remove-NetFirewallRule -DisplayName "TEMP SMB from Kali"
 ```
 

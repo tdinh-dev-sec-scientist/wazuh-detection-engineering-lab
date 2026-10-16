@@ -81,6 +81,8 @@ def main():
     end = datetime.strptime(args.end, "%Y-%m-%d %H:%M").replace(tzinfo=tz)
 
     rows = []
+    seen = set()       # Wazuh writes each alert to alerts.json and to the file of the day
+    duplicates = 0
     for path in alert_files(args.alerts_dir):
         with open_any(path) as handle:
             for line in handle:
@@ -93,6 +95,11 @@ def main():
                     continue
                 if int(alert.get("rule", {}).get("level", 0)) < args.min_level:
                     continue
+                key = alert.get("id") or (alert["timestamp"], alert.get("rule", {}).get("id"), alert.get("full_log"))
+                if key in seen:
+                    duplicates += 1
+                    continue
+                seen.add(key)
                 rows.append((when, alert))
     rows.sort(key=lambda item: item[0])
 
@@ -108,7 +115,7 @@ def main():
             mitre=mitre, detail=short(key_detail(alert).replace("|", "/"), 160)))
     Path(args.out + ".md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     Path(args.out + ".json").write_text(json.dumps([a for _, a in rows], indent=1), encoding="utf-8")
-    print(f"{len(rows)} alerts written to {args.out}.md and {args.out}.json")
+    print(f"{len(rows)} alerts written to {args.out}.md and {args.out}.json ({duplicates} duplicate lines skipped)")
     by_rule = {}
     for _, alert in rows:
         rid = alert["rule"]["id"]

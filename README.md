@@ -31,6 +31,7 @@ The cases below changed how I write rules. Each one links to the evidence.
 ## Analyst view
 
 - [Investigation cases](docs/investigation-cases.md): three alerts triaged with timeline, context, disposition, impact and remediation.
+- [Attack chain timeline](docs/attack-chain-timeline.md): one live session compared step by step across the endpoint log and Wazuh, with delays, two misses and the likely cause.
 - [What the architecture buys](docs/architecture-chain.md): the path of a scan and a brute force from Kali through FW01 and WS01 to Wazuh, and which layer caught which.
 - [Detection quality](docs/detection-quality.md): expected against observed results, negative tests and known misses.
 
