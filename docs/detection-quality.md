@@ -55,7 +55,7 @@ Rules with 0 negative samples are the Security 4688 twins of a Sysmon rule. They
 | T1046 Network Service Discovery | alert | Missed: Suricata lines not decoded, fell to rule 1002 at level 2 | 100301 fired 16 times | Two alerts per probe, no grouping |
 | T1136.002 Domain Account Creation | alert on a burst | Partial: single creations alert at level 8, no burst rule | 100400 fired; silent at 9 accounts, fired at 10 | Fixed threshold, not per creating user |
 | T1053.005 Scheduled Task | alert with technique | Partial: generic level 3 only | 100500 and 100501 fired | `/delete` and other task tools |
-| T1136.001 Local Account Creation | alert with technique | Partial: 60109 carries T1098, two alerts per creation | 100450 fired with T1136.001 | Local accounts of any machine alert |
+| T1136.001 Local Account Creation | alert with technique | Partial: 60109 carries T1098, two alerts per creation; 92040 (level 12, T1136.001) fires on the `net user /add` command line | 100450 fired with T1136.001 | Local accounts of any machine alert |
 | T1070.001 Clear Windows Event Logs | alert on the command | Partial: 63104 at level 5 maps to T1070 only, no process alert | 100550, 100551, 100552 fired | `Clear-EventLog` reaches only 100551 |
 | T1087.001 Local Account Discovery (and T1069.001, T1555.004, T1033) | alert with technique | Partial: generic level 3 alerts, no sub-technique | 100600 to 100603 fired, 14 hits | PowerShell cmdlets, `whoami.exe` |
 | T1105 Ingress Tool Transfer | alert | Partial: generic level 3; Defender detection never reached Wazuh until the agent collected its channel | 100701 fired; 100700 stayed silent in real runs | Only `certutil -urlcache` and `-verifyctl` |

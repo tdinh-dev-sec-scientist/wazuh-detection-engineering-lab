@@ -16,7 +16,7 @@ I ran fifteen tests against this lab and checked what Wazuh 4.14.8 alerts on out
 | T1136.002 Domain Account Creation | 60109 for single accounts | 100400 | Fires at 10 accounts in 60 seconds, not at 9; the threshold is fixed |
 | T1053.005 Scheduled Task | Generic level 3 | 100500, 100501 | `/create` and `-create`, not `/delete` |
 | T1547.001 Registry Run Keys | 92302, level 6 | None needed | None found in this test |
-| T1136.001 Local Account Creation | 60109 with the wrong technique | 100450 | Local accounts only |
+| T1136.001 Local Account Creation | 60109 with the wrong technique; 92040 (level 12) on the `net user /add` command line | 100450 | Local accounts only |
 | T1070.001 Clear Windows Event Logs | 63104, T1070 only (no sub-technique) | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
 | T1110 Brute Force | 60204, T1110 (60122 maps T1531) | None needed | Parent technique only, one source and one account tested |
 | T1059.001 PowerShell | 92057, level 12, T1059.001 | None needed | One encoded command tested; script block text (event 4104) not alerted |
