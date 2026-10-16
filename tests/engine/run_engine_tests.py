@@ -96,6 +96,9 @@ def evaluate(case, data):
     for technique in expect.get("mitre", []):
         if technique not in mitre:
             problems.append(f"technique {technique} missing, got {mitre}")
+    if problems:
+        brief = {k: v for k, v in out.items() if k in ("predecoder", "decoder", "data", "rule")}
+        problems.append("output " + json.dumps(brief, separators=(",", ":"))[:500])
     return fired, level, mitre, problems
 
 
