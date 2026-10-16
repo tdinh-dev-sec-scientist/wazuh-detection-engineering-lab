@@ -1,0 +1,23 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    name: Rules, docs and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate XML, rule catalog, ATT&CK layer and screenshots
+        run: python3 scripts/validate_repo.py
+      - name: Run rule regression tests
+        run: python3 -m unittest discover -s tests -v
