@@ -48,12 +48,13 @@ jobs:
       - name: Start wazuh-analysisd
         run: |
           sudo /var/ossec/bin/wazuh-control start || true
-          sudo /var/ossec/bin/wazuh-control status || true
+          status=$(sudo /var/ossec/bin/wazuh-control status 2>&1 | tr '\n' ';' || true)
+          echo "::notice::wazuh-control status: $status"
           for i in $(seq 1 30); do
             if sudo test -S /var/ossec/queue/sockets/logtest; then echo "logtest socket is up"; break; fi
             sleep 2
           done
-          sudo ls -l /var/ossec/queue/sockets/ || true
+          echo "::notice::sockets: $(sudo ls /var/ossec/queue/sockets/ | tr '\n' ' ')"
 
       - name: Engine tests
         run: sudo python3 tests/engine/run_engine_tests.py --out engine-results

@@ -147,4 +147,9 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as exc:  # make the reason visible as a workflow annotation
+        if os.environ.get("GITHUB_ACTIONS"):
+            print(f"::error::{type(exc).__name__}: {exc}"[:900])
+        raise
