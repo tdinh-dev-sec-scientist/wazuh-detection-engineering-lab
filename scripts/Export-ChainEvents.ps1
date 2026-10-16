@@ -29,6 +29,10 @@ function Get-Fields($event) {
   foreach ($d in $xml.Event.EventData.Data) {
     if ($d.Name) { $fields[$d.Name] = [string]$d.'#text' }
   }
+  # Events 104 and 1102 keep their fields under UserData instead of EventData.
+  if ($xml.Event.UserData -and $xml.Event.UserData.FirstChild) {
+    foreach ($n in $xml.Event.UserData.FirstChild.ChildNodes) { $fields[$n.Name] = [string]$n.InnerText }
+  }
   return $fields
 }
 
