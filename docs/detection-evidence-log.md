@@ -18,7 +18,7 @@ I ran fifteen tests against this lab and checked what Wazuh 4.14.8 alerts on out
 | T1547.001 Registry Run Keys | 92302, level 6 | None needed | None found in this test |
 | T1136.001 Local Account Creation | 60109 with the wrong technique | 100450 | Local accounts only |
 | T1070.001 Clear Windows Event Logs | 63104, T1070 only (no sub-technique) | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
-| T1110 Brute Force | 60122 and 60204, T1110 | None needed | Parent technique only, one source and one account tested |
+| T1110 Brute Force | 60204, T1110 (60122 maps T1531) | None needed | Parent technique only, one source and one account tested |
 | T1059.001 PowerShell | 92057, level 12, T1059.001 | None needed | One encoded command tested; script block text (event 4104) not alerted |
 | T1087.001 Local Account Discovery | 92033, 92036, 92032 at level 3, no T1087.001 | 100600 to 100603 | Process commands only; PowerShell cmdlets such as Get-LocalUser are not matched |
 | T1069.001 Permission Groups Discovery: Local Groups | Generic level 3 alerts (92032, 92033, 92036); the technique ID was not queried | 100601 | net localgroup and net group only; PowerShell Get-LocalGroup is not matched |
@@ -61,7 +61,7 @@ One row per test, newest first.
 | 2026-10-15 | T1105 Ingress Tool Transfer | T1105-7, certutil download (urlcache) | Security event 4688 on WS01 | Default 67027 (level 3); custom 100701 (level 8) | Defender blocked the command and rule 62123 alerted at level 12 once the agent collected the Defender channel; the command itself had only a generic level 3 alert until custom rule 100701; Sysmon rule 100700 fired only in a synthetic echo check |
 | 2026-10-15 | T1087.001 Account Discovery: Local Account | T1087.001 tests 8, 9 and 10: net.exe, cmdkey.exe and query.exe enumeration | Sysmon event 1 on WS01 | Default 92033, 92036, 92032 (level 3); custom 100600 to 100603 (level 6) | Defaults alerted at level 3 and no alert carried T1087.001; four custom rules now alert at level 6 (14 hits) |
 | 2026-10-15 | T1059.001 Command and Scripting Interpreter: PowerShell | T1059.001-17, PowerShell Command Execution (obfuscated, Base64 encoded) | Sysmon event 1 and Security event 4688 on WS01 | Default 92057 (level 12) and 67027 (level 3) | Already detected and mapped to T1059.001 at level 12; no custom rule needed |
-| 2026-10-15 | T1110 Brute Force | None: 12 failed SMB logons from Kali with smbclient | Security event 4625 from WS01 | Default 60122 (level 5) and 60204 (level 10) | Already detected and mapped to T1110 with source IP; 12 alerts, the grouped one at 18:15:42; no custom rule needed |
+| 2026-10-15 | T1110 Brute Force | None: 12 failed SMB logons from Kali with smbclient | Security event 4625 from WS01 | Default 60122 (level 5) and 60204 (level 10) | Detected; the grouped rule 60204 maps to T1110 with source IP, the per-failure rule 60122 maps to T1531; 12 alerts, the grouped one at 18:15:42; no custom rule needed |
 | 2026-10-15 | T1070.001 Indicator Removal: Clear Windows Event Logs | None: wevtutil cl Application run by hand (atomic yaml missing) | System event 104 and Sysmon event 1 (wevtutil.exe) | Default 63104 (level 5); custom 100550 and 100551 (level 8) | Default alert had no technique and the process was not alerted; custom alerts fired at 17:27:30 and 17:27:31 |
 | 2026-10-15 | T1136.001 Create Account: Local Account | T1136.001-4, Create a new user in a command prompt | Security event 4720 from WS01 | Default 60109 (level 8); custom 100450 (level 8) | Default alert carried the wrong technique (T1098); custom alerts with T1136.001 at 17:11:48 and 17:13:58 |
 | 2026-10-15 | T1547.001 Registry Run Keys / Startup Folder | T1547.001-1, Reg Key Run | Sysmon event 13 (registry value set) | Default 92302, level 6 | Already detected and mapped to T1547.001; no custom rule needed |
@@ -484,7 +484,7 @@ The first 12 attempts all timed out. The OPNsense log for the connection showed 
 
 ### Result: coverage by default rules
 
-The query `data.win.system.eventID: 4625` returned 12 hits on WS01 between 18:15:32 and 18:15:51: 11 alerts from rule 60122 "Logon Failure - Unknown user or bad password" (level 5) and one from rule 60204 "Multiple Windows Logon Failures" (level 10) at 18:15:42. Rule 60204 has frequency 8, groups `authentication_failures`, and carries `rule.mitre.id` T1110 with tactic Credential Access and technique Brute Force.
+The query `data.win.system.eventID: 4625` returned 12 hits on WS01 between 18:15:32 and 18:15:51: 11 alerts from rule 60122 "Logon Failure - Unknown user or bad password" (level 5) and one from rule 60204 "Multiple Windows Logon Failures" (level 10) at 18:15:42. Rule 60122 carries `rule.mitre.id` T1531 (Account Access Removal), which is not the right technique for a password guess; I confirmed this in the [attack chain session](attack-chain-timeline.md). Rule 60204 has frequency 8, groups `authentication_failures`, and carries `rule.mitre.id` T1110 with tactic Credential Access and technique Brute Force.
 
 ![Wazuh alerts for failed logons](../screenshots/t1110-1-wazuh-12-hits.png)
 

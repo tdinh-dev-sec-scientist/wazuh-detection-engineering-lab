@@ -62,7 +62,7 @@ Rules with 0 negative samples are the Security 4688 twins of a Sysmon rule. They
 | T1021.002 SMB/Windows Admin Shares | alert with technique | Partial: levels 3 and 4, no T1021.002 | 100710 and 100711 fired | Share access events 5140 and 5145 raised no alert |
 | T1218 System Binary Proxy Execution | alert with technique | Missed: no alert with T1218 | 100720, 100721, 100722 fired | One binary only, `wlrmdr.exe` |
 | T1547.001 Registry Run Keys | alert | Covered: 92302, level 6 | none needed | |
-| T1110 Brute Force | alert | Covered: 60122 x11 and 60204 x1, T1110 | none needed | Parent technique, one source, one account |
+| T1110 Brute Force | alert | Covered by 60204 (T1110); the 11 x 60122 alerts map to T1531, the wrong technique | none needed | Parent technique, one source, one account |
 | T1059.001 PowerShell | alert | Covered: 92057, level 12 | none needed | Script block text (4104) not alerted |
 | T1543.003 Windows Service | alert | Covered: 61138 and 92307 | none needed | Low levels, only `sc.exe` tested |
 

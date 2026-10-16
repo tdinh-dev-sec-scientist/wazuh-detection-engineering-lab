@@ -89,7 +89,7 @@ Log sources on DC01 and WS01 reach Wazuh through the Wazuh agent: Sysmon (sysmon
 | T1547.001 Registry Run Keys | 92302, level 6 | None needed | None found in this test |
 | T1136.001 Local Account Creation | 60109 with the wrong technique | 100450 | Local accounts only |
 | T1070.001 Clear Windows Event Logs | 63104, T1070 only (no sub-technique) | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
-| T1110 Brute Force | 60122 and 60204, T1110 | None needed | Parent technique only, one source and one account tested |
+| T1110 Brute Force | 60204, T1110 (60122 maps T1531) | None needed | Parent technique only, one source and one account tested |
 | T1059.001 PowerShell | 92057, level 12, T1059.001 | None needed | One encoded command tested; script block text (event 4104) not alerted |
 | T1087.001 Local Account Discovery | 92033, 92036, 92032 at level 3, no T1087.001 | 100600 to 100603 | Process commands only; PowerShell cmdlets such as Get-LocalUser are not matched |
 | T1069.001 Permission Groups Discovery: Local Groups | Generic level 3 alerts (92032, 92033, 92036); the technique ID was not queried | 100601 | net localgroup and net group only; PowerShell Get-LocalGroup is not matched |
