@@ -1,0 +1,208 @@
+{
+  "name": "Wazuh detection engineering lab",
+  "versions": {
+    "attack": "17",
+    "navigator": "5.1.0",
+    "layer": "4.5"
+  },
+  "domain": "enterprise-attack",
+  "description": "Techniques tested in the home SOC lab. Green: custom Wazuh rule written. Blue: default Wazuh rules already covered it.",
+  "sorting": 0,
+  "layout": {
+    "layout": "side",
+    "aggregateFunction": "average",
+    "showID": true,
+    "showName": true,
+    "showAggregateScores": false,
+    "countUnscored": false
+  },
+  "hideDisabled": false,
+  "techniques": [
+    {
+      "techniqueID": "T1082",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100100, 100101",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1046",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100300, 100301",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1136.002",
+      "color": "#2e8b57",
+      "comment": "Custom rule 100400",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1053.005",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100500, 100501",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1547.001",
+      "color": "#4682b4",
+      "comment": "Default rule 92302",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1136.001",
+      "color": "#2e8b57",
+      "comment": "Custom rule 100450",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1070.001",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100550, 100551, 100552",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1110",
+      "color": "#4682b4",
+      "comment": "Default rules 60122, 60204",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1059.001",
+      "color": "#4682b4",
+      "comment": "Default rule 92057",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1087.001",
+      "color": "#2e8b57",
+      "comment": "Custom rule 100600",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1069.001",
+      "color": "#2e8b57",
+      "comment": "Custom rule 100601",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1555.004",
+      "color": "#2e8b57",
+      "comment": "Custom rule 100602",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1033",
+      "color": "#2e8b57",
+      "comment": "Custom rule 100603",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1105",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100700, 100701",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1021.002",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100710, 100711",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1543.003",
+      "color": "#4682b4",
+      "comment": "Default rules 61138, 92307",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1218",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100720, 100721, 100722",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1036.003",
+      "color": "#2e8b57",
+      "comment": "Custom rules 100101, 100501, 100552 (renamed binaries)",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    }
+  ],
+  "gradient": {
+    "colors": [
+      "#ffffff",
+      "#2e8b57"
+    ],
+    "minValue": 0,
+    "maxValue": 100
+  },
+  "legendItems": [
+    {
+      "label": "Custom rule written",
+      "color": "#2e8b57"
+    },
+    {
+      "label": "Default rules already covered it",
+      "color": "#4682b4"
+    }
+  ],
+  "metadata": [],
+  "links": [],
+  "showTacticRowBackground": false,
+  "tacticRowBackground": "#dddddd",
+  "selectTechniquesAcrossTactics": true,
+  "selectSubtechniquesWithParent": false
+}
