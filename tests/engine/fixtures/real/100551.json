@@ -1,0 +1,14 @@
+{
+  "rule": "100551",
+  "agent": "WS01",
+  "captured": "2026-10-15T17:27:30.253-0400",
+  "log_format": "syslog",
+  "event": "{\"win\":{\"system\":{\"providerName\":\"Microsoft-Windows-Eventlog\",\"providerGuid\":\"{fc65ddd8-d6ef-4962-83d5-6e5cfe9ce148}\",\"eventID\":\"104\",\"version\":\"1\",\"level\":\"4\",\"task\":\"104\",\"opcode\":\"0\",\"keywords\":\"0x8000000000000000\",\"systemTime\":\"2026-10-15T21:27:30.1318440Z\",\"eventRecordID\":\"1529\",\"processID\":\"1320\",\"threadID\":\"5336\",\"channel\":\"System\",\"computer\":\"WS01.corp.lab\",\"severityValue\":\"INFORMATION\",\"message\":\"\\\"The Application log file was cleared.\\\"\"},\"logFileCleared\":{\"subjectUserName\":\"adm.truong\",\"subjectDomainName\":\"CORP\",\"channel\":\"Application\",\"clientProcessId\":\"11024\",\"clientProcessStartKey\":\"2814749767107796\"}}}",
+  "expect": {
+    "rule_id": "100551",
+    "level": 8,
+    "mitre": [
+      "T1070.001"
+    ]
+  }
+}

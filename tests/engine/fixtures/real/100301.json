@@ -1,0 +1,14 @@
+{
+  "rule": "100301",
+  "agent": "wazuh",
+  "captured": "2026-10-15T15:40:51.971-0400",
+  "log_format": "syslog",
+  "event": "Oct 15 15:40:51 FW01.corp.lab suricata[2588]: {\"timestamp\":\"2026-10-15T15:40:51.951557-0400\",\"flow_id\":990683434602812,\"in_iface\":\"em3\",\"event_type\":\"alert\",\"src_ip\":\"10.10.50.181\",\"src_port\":47482,\"dest_ip\":\"10.10.30.149\",\"dest_port\":5432,\"proto\":\"TCP\",\"ip_v\":4,\"pkt_src\":\"wire/pcap\",\"community_id\":\"1:JUlqHy+uuvIbMjQ3yteRd75Nu7c=\",\"alert\":{\"action\":\"allowed\",\"gid\":1,\"signature_id\":2010939,\"rev\":3,\"signature\":\"ET SCAN Suspicious inbound to PostgreSQL port 5432\",\"category\":\"Potentially Bad Traffic\",\"severity\":2,\"metadata\":{\"confidence\":[\"Medium\"],\"created_at\":[\"2010_07_30\"],\"signature_severity\":[\"Informational\"],\"updated_at\":[\"2019_07_26\"]}},\"direction\":\"to_server\",\"flow\":{\"pkts_toserver\":1,\"pkts_toclient\":0,\"bytes_toserver\":58,\"bytes_toclient\":0,\"start\":\"2026-10-15T15:40:51.951557-0400\",\"src_ip\":\"10.10.50.181\",\"dest_ip\":\"10.10.30.149\",\"src_port\":47482,\"dest_port\":5432}}",
+  "expect": {
+    "rule_id": "100301",
+    "level": 7,
+    "mitre": [
+      "T1046"
+    ]
+  }
+}

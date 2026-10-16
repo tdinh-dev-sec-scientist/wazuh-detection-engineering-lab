@@ -1,0 +1,14 @@
+{
+  "rule": "100450",
+  "agent": "WS01",
+  "captured": "2026-10-15T16:52:24.088-0400",
+  "log_format": "syslog",
+  "event": "{\"win\":{\"system\":{\"providerName\":\"Microsoft-Windows-Security-Auditing\",\"providerGuid\":\"{54849625-5478-4994-a5ba-3e3b0328c30d}\",\"eventID\":\"4720\",\"version\":\"0\",\"level\":\"0\",\"task\":\"13824\",\"opcode\":\"0\",\"keywords\":\"0x8020000000000000\",\"systemTime\":\"2026-10-15T20:52:03.8498998Z\",\"eventRecordID\":\"16952\",\"processID\":\"824\",\"threadID\":\"1148\",\"channel\":\"Security\",\"computer\":\"WS01.corp.lab\",\"severityValue\":\"AUDIT_SUCCESS\",\"message\":\"\\\"A user account was created.\\r\\n\\r\\nSubject:\\r\\n\\tSecurity ID:\\t\\tS-1-5-21-1471433607-2806590238-164139646-1103\\r\\n\\tAccount Name:\\t\\tadm.truong\\r\\n\\tAccount Domain:\\t\\tCORP\\r\\n\\tLogon ID:\\t\\t0x24219C8\\r\\n\\r\\nNew Account:\\r\\n\\tSecurity ID:\\t\\tS-1-5-21-3443244990-2188684688-1850623503-1004\\r\\n\\tAccount Name:\\t\\tT1136.001_CMD\\r\\n\\tAccount Domain:\\t\\tWS01\\r\\n\\r\\nAttributes:\\r\\n\\tSAM Account Name:\\tT1136.001_CMD\\r\\n\\tDisplay Name:\\t\\t<value not set>\\r\\n\\tUser Principal Name:\\t-\\r\\n\\tHome Directory:\\t\\t<value not set>\\r\\n\\tHome Drive:\\t\\t<value not set>\\r\\n\\tScript Path:\\t\\t<value not set>\\r\\n\\tProfile Path:\\t\\t<value not set>\\r\\n\\tUser Workstations:\\t<value not set>\\r\\n\\tPassword Last Set:\\t<never>\\r\\n\\tAccount Expires:\\t\\t<never>\\r\\n\\tPrimary Group ID:\\t513\\r\\n\\tAllowed To Delegate To:\\t-\\r\\n\\tOld UAC Value:\\t\\t0x0\\r\\n\\tNew UAC Value:\\t\\t0x15\\r\\n\\tUser Account Control:\\t\\r\\n\\t\\tAccount Disabled\\r\\n\\t\\t'Password Not Required' - Enabled\\r\\n\\t\\t'Normal Account' - Enabled\\r\\n\\tUser Parameters:\\t<value not set>\\r\\n\\tSID History:\\t\\t-\\r\\n\\tLogon Hours:\\t\\tAll\\r\\n\\r\\nAdditional Information:\\r\\n\\tPrivileges\\t\\t-\\\"\"},\"eventdata\":{\"targetUserName\":\"T1136.001_CMD\",\"targetDomainName\":\"WS01\",\"targetSid\":\"S-1-5-21-3443244990-2188684688-1850623503-1004\",\"subjectUserSid\":\"S-1-5-21-1471433607-2806590238-164139646-1103\",\"subjectUserName\":\"adm.truong\",\"subjectDomainName\":\"CORP\",\"subjectLogonId\":\"0x24219c8\",\"samAccountName\":\"T1136.001_CMD\",\"displayName\":\"%%1793\",\"homeDirectory\":\"%%1793\",\"homePath\":\"%%1793\",\"scriptPath\":\"%%1793\",\"profilePath\":\"%%1793\",\"userWorkstations\":\"%%1793\",\"passwordLastSet\":\"%%1794\",\"accountExpires\":\"%%1794\",\"primaryGroupId\":\"513\",\"oldUacValue\":\"0x0\",\"newUacValue\":\"0x15\",\"userAccountControl\":\"    %%2080    %%2082    %%2084\",\"userParameters\":\"%%1793\",\"logonHours\":\"%%1797\"}}}",
+  "expect": {
+    "rule_id": "100450",
+    "level": 8,
+    "mitre": [
+      "T1136.001"
+    ]
+  }
+}

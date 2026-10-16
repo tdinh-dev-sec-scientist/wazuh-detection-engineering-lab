@@ -1,0 +1,12 @@
+{
+  "rule": "100200",
+  "agent": "wazuh",
+  "captured": "2026-10-15T15:03:08.805-0400",
+  "log_format": "syslog",
+  "event": "Oct 15 15:02:36 FW01.corp.lab filterlog[4252]: 119,,,4f5b7984-040b-4978-ba48-6ae329514e94,em3,match,block,in,4,0x0,,128,40715,0,none,1,icmp,60,10.10.30.149,10.10.50.254,datalength=40",
+  "expect": {
+    "rule_id": "100200",
+    "level": 6,
+    "mitre": []
+  }
+}

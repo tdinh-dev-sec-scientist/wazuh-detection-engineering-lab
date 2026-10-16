@@ -1,0 +1,15 @@
+{
+  "rule": "100400",
+  "agent": "DC01",
+  "captured": "2026-10-15T16:22:51.150-0400",
+  "log_format": "syslog",
+  "event": "{\"win\":{\"system\":{\"providerName\":\"Microsoft-Windows-Security-Auditing\",\"providerGuid\":\"{54849625-5478-4994-a5ba-3e3b0328c30d}\",\"eventID\":\"4720\",\"version\":\"0\",\"level\":\"0\",\"task\":\"13824\",\"opcode\":\"0\",\"keywords\":\"0x8020000000000000\",\"systemTime\":\"2026-10-15T20:22:50.2727805Z\",\"eventRecordID\":\"21626\",\"processID\":\"760\",\"threadID\":\"1356\",\"channel\":\"Security\",\"computer\":\"DC01.corp.lab\",\"severityValue\":\"AUDIT_SUCCESS\",\"message\":\"\\\"A user account was created.\\r\\n\\r\\nSubject:\\r\\n\\tSecurity ID:\\t\\tS-1-5-21-1471433607-2806590238-164139646-500\\r\\n\\tAccount Name:\\t\\tAdministrator\\r\\n\\tAccount Domain:\\t\\tCORP\\r\\n\\tLogon ID:\\t\\t0xE1CAA\\r\\n\\r\\nNew Account:\\r\\n\\tSecurity ID:\\t\\tS-1-5-21-1471433607-2806590238-164139646-3698\\r\\n\\tAccount Name:\\t\\tzz.test10\\r\\n\\tAccount Domain:\\t\\tCORP\\r\\n\\r\\nAttributes:\\r\\n\\tSAM Account Name:\\tzz.test10\\r\\n\\tDisplay Name:\\t\\t-\\r\\n\\tUser Principal Name:\\t-\\r\\n\\tHome Directory:\\t\\t-\\r\\n\\tHome Drive:\\t\\t-\\r\\n\\tScript Path:\\t\\t-\\r\\n\\tProfile Path:\\t\\t-\\r\\n\\tUser Workstations:\\t-\\r\\n\\tPassword Last Set:\\t<never>\\r\\n\\tAccount Expires:\\t\\t<never>\\r\\n\\tPrimary Group ID:\\t513\\r\\n\\tAllowed To Delegate To:\\t-\\r\\n\\tOld UAC Value:\\t\\t0x0\\r\\n\\tNew UAC Value:\\t\\t0x11\\r\\n\\tUser Account Control:\\t\\r\\n\\t\\tAccount Disabled\\r\\n\\t\\t'Normal Account' - Enabled\\r\\n\\tUser Parameters:\\t-\\r\\n\\tSID History:\\t\\t-\\r\\n\\tLogon Hours:\\t\\t<value not set>\\r\\n\\r\\nAdditional Information:\\r\\n\\tPrivileges\\t\\t-\\\"\"},\"eventdata\":{\"targetUserName\":\"zz.test10\",\"targetDomainName\":\"CORP\",\"targetSid\":\"S-1-5-21-1471433607-2806590238-164139646-3698\",\"subjectUserSid\":\"S-1-5-21-1471433607-2806590238-164139646-500\",\"subjectUserName\":\"Administrator\",\"subjectDomainName\":\"CORP\",\"subjectLogonId\":\"0xe1caa\",\"samAccountName\":\"zz.test10\",\"passwordLastSet\":\"%%1794\",\"accountExpires\":\"%%1794\",\"primaryGroupId\":\"513\",\"oldUacValue\":\"0x0\",\"newUacValue\":\"0x11\",\"userAccountControl\":\"    %%2080    %%2084\",\"logonHours\":\"%%1793\"}}}",
+  "expect": {
+    "rule_id": "100400",
+    "level": 10,
+    "mitre": [
+      "T1136.002"
+    ]
+  },
+  "repeat": 10
+}
