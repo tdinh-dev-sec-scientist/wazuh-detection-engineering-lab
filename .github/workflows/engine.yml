@@ -43,7 +43,7 @@ jobs:
           sudo /var/ossec/bin/wazuh-analysisd -t
 
       - name: Claims about the default ruleset
-        run: python3 tests/engine/baseline_claims.py /var/ossec/ruleset/rules
+        run: sudo python3 tests/engine/baseline_claims.py /var/ossec/ruleset/rules
 
       - name: Start wazuh-analysisd
         run: |
