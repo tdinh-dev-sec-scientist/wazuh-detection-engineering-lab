@@ -30,7 +30,7 @@ The cases below changed how I write rules. Each one links to the evidence.
 
 ## Analyst view
 
-- [Investigation cases](docs/investigation-cases.md): three alerts triaged with timeline, context, disposition, impact and remediation.
+- [Investigation cases](docs/investigation-cases.md): four alerts triaged with timeline, context, disposition, impact and remediation.
 - [Attack chain timeline](docs/attack-chain-timeline.md): one live session compared step by step across the endpoint log and Wazuh, with delays, two misses and the likely cause.
 - [What the architecture buys](docs/architecture-chain.md): the path of a scan and a brute force from Kali through FW01 and WS01 to Wazuh, and which layer caught which.
 - [Detection quality](docs/detection-quality.md): expected against observed results, negative tests and known misses.
@@ -117,7 +117,7 @@ decoders/local_decoder.xml     Suricata EVE JSON decoder
 configs/                       Agent setting that collects Microsoft Defender events
 docs/detection-evidence-log.md Full write-up, one section per test, with screenshots
 docs/detection-quality.md      How each rule is verified, expected against observed, known misses
-docs/investigation-cases.md   Three alerts triaged like an analyst would
+docs/investigation-cases.md   Four alerts triaged like an analyst would
 docs/architecture-chain.md     Path of an attack through the segments and detection layers
 docs/rule-catalog.md           Every rule with level, technique, log source and evidence link
 docs/test-matrix.md            One row per test

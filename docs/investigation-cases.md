@@ -1,6 +1,6 @@
 # Investigation cases
 
-Three alerts from this lab, worked the way an analyst would triage them: timeline, context, disposition, impact and what I would do next. Every fact below is taken from the alerts and screenshots in the [evidence log](detection-evidence-log.md); nothing here is invented for the writeup. Each case ends with a disposition because that is the actual analyst deliverable, not the rule that fired.
+Four alerts from this lab, worked the way an analyst would triage them: timeline, context, disposition, impact and what I would do next. Every fact below is taken from the alerts and screenshots in the [evidence log](detection-evidence-log.md); nothing here is invented for the writeup. Each case ends with a disposition because that is the actual analyst deliverable, not the rule that fired.
 
 ## Case 1: Proxy execution through wlrmdr.exe on WS01
 
@@ -123,6 +123,46 @@ Closed as authorized testing for this specific alert, but I would treat the unde
 - Add a lower-level alert for any account creation outside business hours or by an account that has not created accounts before, to catch an attacker who paces around the burst threshold.
 - Require second-person approval for any AD account creation outside a change window, which is a process control the detection rule cannot substitute for.
 
-## What these three cases have in common
+## Case 4: Local account created on WS01 during a command burst
 
-Each one needed the full event, not just the rule that matched, to reach a disposition: the destination IP in case 2, the parent process and the missing Sysmon event in case 1, and the account-naming pattern plus the creating session in case 3. A rule firing is the start of triage, not the end of it, and all three cases were closed only after checking something the rule itself does not evaluate.
+**Alerts**: rule 92040 "net1.exe executed a user creation command" (default, level 12, T1136.001) and rule 100450 "Local user account created on a workstation" (custom, level 8, T1136.001), plus default rules 60109, 60160 and 60170. Source: the [attack chain timeline](attack-chain-timeline.md), which has the full session.
+
+### Timeline (local time, ET, 2026-10-16)
+
+| Time | Event |
+| --- | --- |
+| 14:06:24 | First `net user /add "T1136.001_CMD"` on WS01 (Sysmon 1, Security 4688). The password was rejected by the domain policy, so no account was created. No Wazuh alert. |
+| 14:06:21 to 14:06:49 | WS01 agent raises rules 202, 203 (queue full, events may be lost) and 205 (back to normal) |
+| 14:17:31 | Second run with a compliant password: events 4720 (account created), 4722 (enabled), 4732 (added to a local group) |
+| 14:17:37 | Wazuh alert rule 92040, level 12, from the process command line |
+| 14:17:45 | Wazuh alerts 100450, 60109, 60160, 60170, from the account events |
+| 14:19:59 | `net user /del "T1136.001_CMD"`, caught by rule 100600 |
+| 14:20:27 | Group change alerts 60170 and 60160 for the removal |
+
+### Context
+
+- **Two evidence layers.** The command line (Sysmon 1 and 4688) names the account and carries the password in clear text. The account events (4720, 4722, 4732) show that the account really exists and which group it joined. Only the second proves the attempt succeeded.
+- **The first attempt left no alert.** The command line was logged on the endpoint at 14:06:24, but the agent queue was full from 14:06:22 to 14:06:49. The likely cause is event loss during the burst, not a rule gap, and I have not proven it because `logall` was off.
+- **Account**: `T1136.001_CMD`, a local account on a workstation, created by CORP\adm.truong from an elevated PowerShell.
+
+### Benign or suspicious
+
+Suspicious in form, authorised in this instance (Atomic Red Team T1136.001-4). A new local account on a workstation created from a command line is a standard persistence step, and it is worth escalating on the account events alone because they cannot be spoofed by a bad command line parse. The account name pattern `T1136.001_CMD` is the test tell and would not appear in a live case.
+
+### Impact if real
+
+Medium to high. A local account added to a group gives the actor a login that survives a password reset of the compromised user, and the 4732 event shows it was given group membership, not just created.
+
+### Disposition and escalation
+
+I would escalate: pull the creating session, check whether the account logged on afterwards, and confirm there is no change ticket. The more useful lesson is the first attempt. A failed `net user /add` is still intent, and in this run the only record of it is on the endpoint, so a case built on Wazuh alone would have missed it. When the queue alert 203 fires, the next step is to go back to the endpoint log for that window, not to assume the alert list is complete.
+
+### Remediation if this were a real finding
+
+- Alert on rule 203 and raise the agent `client_buffer` limits, so a burst does not silently drop the commands that matter.
+- Redact or restrict access to command lines in the alert index: the 92040 alert here holds the account password in clear text.
+- Disable the account and remove it from the local group before any other containment, then review what ran under it.
+
+## What these four cases have in common
+
+Each one needed the full event, not just the rule that matched, to reach a disposition: the destination IP in case 2, the parent process and the missing Sysmon event in case 1, the account-naming pattern plus the creating session in case 3, and the endpoint log for the window where the agent queue was full in case 4. A rule firing is the start of triage, not the end of it, and all four cases were closed only after checking something the rule itself does not evaluate.
