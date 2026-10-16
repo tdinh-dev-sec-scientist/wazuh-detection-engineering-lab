@@ -28,6 +28,12 @@ The cases below changed how I write rules. Each one links to the evidence.
 - **`wazuh-logtest` cannot run Windows rules.** It skips the eventchannel decoder, so a pasted Windows event falls to a generic syslog rule. I found this in the Wazuh source and test the rules in a real manager the way Wazuh's own ruleset tests do. [Details](docs/detection-quality.md#how-a-rule-is-verified)
 - **Thresholds need a boundary test.** The mass account creation rule stays silent at 9 accounts in 60 seconds and fires at 10. [Details](docs/detection-evidence-log.md#boundary-test)
 
+## Analyst view
+
+- [Investigation cases](docs/investigation-cases.md): three alerts triaged with timeline, context, disposition, impact and remediation.
+- [What the architecture buys](docs/architecture-chain.md): the path of a scan and a brute force from Kali through FW01 and WS01 to Wazuh, and which layer caught which.
+- [Detection quality](docs/detection-quality.md): expected against observed results, negative tests and known misses.
+
 ## Lab
 
 ```mermaid
@@ -110,6 +116,8 @@ decoders/local_decoder.xml     Suricata EVE JSON decoder
 configs/                       Agent setting that collects Microsoft Defender events
 docs/detection-evidence-log.md Full write-up, one section per test, with screenshots
 docs/detection-quality.md      How each rule is verified, expected against observed, known misses
+docs/investigation-cases.md   Three alerts triaged like an analyst would
+docs/architecture-chain.md     Path of an attack through the segments and detection layers
 docs/rule-catalog.md           Every rule with level, technique, log source and evidence link
 docs/test-matrix.md            One row per test
 mitre/                         ATT&CK Navigator layer
