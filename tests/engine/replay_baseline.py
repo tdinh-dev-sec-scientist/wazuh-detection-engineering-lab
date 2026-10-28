@@ -14,6 +14,7 @@ the live weeks, not here. The manager must be prepared with scripts/prepare_engi
 """
 import argparse
 import json
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -67,6 +68,8 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     (out / "replay.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
+    if os.environ.get("GITHUB_ACTIONS"):
+        print("::notice::replay " + " ; ".join(l for l in lines if l.startswith("| all") or l.startswith("| 100"))[:900])
     return 0
 
 
