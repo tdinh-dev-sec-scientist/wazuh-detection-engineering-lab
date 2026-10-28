@@ -1,0 +1,20 @@
+{
+  "grace_seconds": 300,
+  "tests": [
+    {"id": "T1082",      "name": "System Information Discovery",       "where": "WS01",  "expect": ["100100"]},
+    {"id": "FW-BLOCK",   "name": "Firewall block between segments",    "where": "WS01",  "expect": ["100200"]},
+    {"id": "T1046",      "name": "Network Service Discovery (nmap)",   "where": "Kali",  "expect": ["100301"]},
+    {"id": "T1136.002",  "name": "Mass domain account creation",       "where": "DC01",  "expect": ["100400"]},
+    {"id": "T1053.005",  "name": "Scheduled Task",                     "where": "WS01",  "expect": ["100500"]},
+    {"id": "T1547.001",  "name": "Registry Run Key",                   "where": "WS01",  "expect": ["92302"]},
+    {"id": "T1136.001",  "name": "Local account creation",             "where": "WS01",  "expect": ["100450"]},
+    {"id": "T1070.001",  "name": "Clear Windows Event Logs",           "where": "WS01",  "expect": ["100550", "100551"]},
+    {"id": "T1110",      "name": "Brute force over SMB",               "where": "Kali",  "expect": ["60204"]},
+    {"id": "T1059.001",  "name": "Encoded PowerShell",                 "where": "WS01",  "expect": ["92057"]},
+    {"id": "T1087.001",  "name": "Account and group discovery",        "where": "WS01",  "expect": ["100600", "100601", "100602", "100603"]},
+    {"id": "T1105",      "name": "Ingress Tool Transfer (certutil)",   "where": "WS01",  "expect": ["100701"]},
+    {"id": "T1021.002",  "name": "Admin share command",                "where": "WS01",  "expect": ["100710", "100711"]},
+    {"id": "T1543.003",  "name": "Windows Service",                    "where": "WS01",  "expect": ["61138"]},
+    {"id": "T1218",      "name": "wlrmdr.exe proxy execution",         "where": "WS01",  "expect": ["100720", "100721", "100722"]}
+  ]
+}

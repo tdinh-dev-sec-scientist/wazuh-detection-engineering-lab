@@ -127,6 +127,9 @@ scripts/validate_repo.py       Consistency checks used by CI
 scripts/prepare_engine_tests.py  Makes a throwaway manager accept Windows events in logtest
 scripts/extract_fixtures.py    Captures real events from Wazuh alerts as test fixtures
 scripts/chain_timeline.py      Alert timeline for a time window
+scripts/baseline_report.py      Alerts per rule per day for a baseline week
+scripts/regression_check.py    Checks that the 15 live tests still raise their alerts
+baseline/                      Scripts that generate normal activity (docs/baseline-protocol.md)
 scripts/Export-ChainEvents.ps1 What a Windows endpoint logged in a time window
 tests/                         Pattern samples (tests/cases.py) and engine tests (tests/engine/)
 ```

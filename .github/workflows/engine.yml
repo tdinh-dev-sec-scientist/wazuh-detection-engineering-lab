@@ -59,6 +59,22 @@ jobs:
       - name: Engine tests
         run: sudo -E python3 tests/engine/run_engine_tests.py --out engine-results
 
+      - name: Replay tool smoke test (real fixtures as input)
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          out = pathlib.Path("replay-input.jsonl").open("w")
+          for f in sorted(pathlib.Path("tests/engine/fixtures/real").glob("*.json")):
+              x = json.loads(f.read_text())
+              out.write(json.dumps({"rule": x["rule"], "level": x["expect"]["level"], "event": x["event"],
+                                    "repeat": x.get("repeat", 1), "count": 1}) + "\n")
+          PY
+          sudo -E python3 tests/engine/replay_baseline.py replay-input.jsonl --min-level 3 --out engine-results/replay
+          for f in baseline/*-events.jsonl; do
+            [ -e "$f" ] || continue
+            sudo -E python3 tests/engine/replay_baseline.py "$f" --min-level 6 --out "engine-results/replay-$(basename "$f" .jsonl)"
+          done
+
       - name: Job summary
         if: always()
         run: |

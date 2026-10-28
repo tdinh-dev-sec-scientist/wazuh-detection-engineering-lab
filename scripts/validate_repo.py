@@ -11,6 +11,7 @@ Checks:
   7. Every screenshot referenced in the docs exists and every screenshot file is referenced.
   8. docs/detection-quality.md has a row for every rule.
   9. Every engine fixture under tests/engine/fixtures/real is valid and names an existing rule.
+ 10. tests/live/expected.json only expects custom rules that exist.
 
 Exit code 0 when all checks pass, 1 otherwise.
 """
@@ -122,6 +123,16 @@ def main():
                 fail(f"{path.name}: missing event or expectation")
         except (ValueError, KeyError) as exc:
             fail(f"{path.name}: {exc}")
+
+    # The live regression list may only name custom rules that exist.
+    try:
+        live = json.loads((ROOT / "tests" / "live" / "expected.json").read_text(encoding="utf-8"))
+        for test in live["tests"]:
+            for rid in test["expect"]:
+                if rid.startswith("100") and rid not in rule_ids:
+                    fail(f"tests/live/expected.json: {test['id']} expects unknown rule {rid}")
+    except (OSError, ValueError, KeyError) as exc:
+        fail(f"tests/live/expected.json: {exc}")
 
     print(f"{len(rule_ids)} rules, {len(techniques)} techniques, "
           f"{len(on_disk)} screenshots checked")
