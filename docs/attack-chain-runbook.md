@@ -15,7 +15,7 @@ One continuous session that strings together tests already documented in the [ev
 
 ```
 nmap -sS -Pn -T4 -p 22,1433,3306,5432,1521,5900 10.10.30.149
-for i in $(seq 1 12); do smbclient -L //10.10.30.149 -U 'fakeuser%WrongPass123'; done
+for i in $(seq 1 12); do smbclient -L //10.10.30.149 -U 'fakeuser%<REDACTED_PASSWORD>'; done
 ```
 
 Write down the time each command starts (`date`).

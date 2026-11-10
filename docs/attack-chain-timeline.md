@@ -48,4 +48,4 @@ Delay is the time between the endpoint event (`systemTime` in the alert) and the
 ## What I changed because of this run
 
 - `chain_timeline.py` now skips duplicate alerts. Wazuh writes each alert to `alerts.json` and to the file of the day, so the first export counted every alert twice (608 lines, 304 alerts).
-- The runbook now checks the Kali address first and uses a prompt for the account password instead of a literal.
+- The runbook now checks the Kali address first and uses a redaction placeholder instead of storing the SMB test password in the repository.

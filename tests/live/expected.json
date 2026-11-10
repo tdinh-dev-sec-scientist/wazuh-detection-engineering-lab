@@ -1,20 +1,348 @@
 {
   "grace_seconds": 300,
   "tests": [
-    {"id": "T1082",      "name": "System Information Discovery",       "where": "WS01",  "expect": ["100100"]},
-    {"id": "FW-BLOCK",   "name": "Firewall block between segments",    "where": "WS01",  "expect": ["100200"]},
-    {"id": "T1046",      "name": "Network Service Discovery (nmap)",   "where": "Kali",  "expect": ["100301"]},
-    {"id": "T1136.002",  "name": "Mass domain account creation",       "where": "DC01",  "expect": ["100400"]},
-    {"id": "T1053.005",  "name": "Scheduled Task",                     "where": "WS01",  "expect": ["100500"]},
-    {"id": "T1547.001",  "name": "Registry Run Key",                   "where": "WS01",  "expect": ["92302"]},
-    {"id": "T1136.001",  "name": "Local account creation",             "where": "WS01",  "expect": ["100450"]},
-    {"id": "T1070.001",  "name": "Clear Windows Event Logs",           "where": "WS01",  "expect": ["100550", "100551"]},
-    {"id": "T1110",      "name": "Brute force over SMB",               "where": "Kali",  "expect": ["60204"]},
-    {"id": "T1059.001",  "name": "Encoded PowerShell",                 "where": "WS01",  "expect": ["92057"]},
-    {"id": "T1087.001",  "name": "Account and group discovery",        "where": "WS01",  "expect": ["100600", "100601", "100602", "100603"]},
-    {"id": "T1105",      "name": "Ingress Tool Transfer (certutil)",   "where": "WS01",  "expect": ["100701"]},
-    {"id": "T1021.002",  "name": "Admin share command",                "where": "WS01",  "expect": ["100710", "100711"]},
-    {"id": "T1543.003",  "name": "Windows Service",                    "where": "WS01",  "expect": ["61138"]},
-    {"id": "T1218",      "name": "wlrmdr.exe proxy execution",         "where": "WS01",  "expect": ["100720", "100721", "100722"]}
+    {
+      "id": "T1082",
+      "name": "System Information Discovery",
+      "expect": [
+        {
+          "rule_id": "100100",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 6,
+          "mitre": [
+            "T1082"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FW-BLOCK",
+      "name": "Firewall block between segments",
+      "expect": [
+        {
+          "rule_id": "100200",
+          "agent_name": "wazuh",
+          "event_source": {
+            "decoder.name": "pf"
+          },
+          "level": 6,
+          "mitre": []
+        }
+      ]
+    },
+    {
+      "id": "T1046",
+      "name": "Network Service Discovery (nmap)",
+      "expect": [
+        {
+          "rule_id": "100301",
+          "agent_name": "wazuh",
+          "event_source": {
+            "decoder.name": "suricata-eve",
+            "data.event_type": "alert"
+          },
+          "level": 7,
+          "mitre": [
+            "T1046"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1136.002",
+      "name": "Mass domain account creation",
+      "expect": [
+        {
+          "rule_id": "100400",
+          "agent_name": "DC01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Security-Auditing",
+            "data.win.system.channel": "Security",
+            "data.win.system.eventID": "4720"
+          },
+          "level": 10,
+          "mitre": [
+            "T1136.002"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1053.005",
+      "name": "Scheduled Task",
+      "expect": [
+        {
+          "rule_id": "100500",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 8,
+          "mitre": [
+            "T1053.005"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1547.001",
+      "name": "Registry Run Key",
+      "expect": [
+        {
+          "rule_id": "92302",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "13"
+          },
+          "level": 6,
+          "mitre": [
+            "T1547.001"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1136.001",
+      "name": "Local account creation",
+      "expect": [
+        {
+          "rule_id": "100450",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Security-Auditing",
+            "data.win.system.channel": "Security",
+            "data.win.system.eventID": "4720"
+          },
+          "level": 8,
+          "mitre": [
+            "T1136.001"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1070.001",
+      "name": "Clear Windows Event Logs",
+      "expect": [
+        {
+          "rule_id": "100550",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 8,
+          "mitre": [
+            "T1070.001"
+          ]
+        },
+        {
+          "rule_id": "100551",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.channel": "System",
+            "data.win.system.eventID": "104"
+          },
+          "level": 8,
+          "mitre": [
+            "T1070.001"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1110",
+      "name": "Brute force over SMB",
+      "expect": [
+        {
+          "rule_id": "60204",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Security-Auditing",
+            "data.win.system.channel": "Security",
+            "data.win.system.eventID": "4625"
+          },
+          "level": 10,
+          "mitre": [
+            "T1110"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1059.001",
+      "name": "Encoded PowerShell",
+      "expect": [
+        {
+          "rule_id": "92057",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 12,
+          "mitre": [
+            "T1059.001"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1087.001",
+      "name": "Account and group discovery",
+      "expect": [
+        {
+          "rule_id": "100600",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 6,
+          "mitre": [
+            "T1087.001"
+          ]
+        },
+        {
+          "rule_id": "100601",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 6,
+          "mitre": [
+            "T1069.001"
+          ]
+        },
+        {
+          "rule_id": "100602",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 6,
+          "mitre": [
+            "T1555.004"
+          ]
+        },
+        {
+          "rule_id": "100603",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 6,
+          "mitre": [
+            "T1033"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1105",
+      "name": "Ingress Tool Transfer (certutil)",
+      "expect": [
+        {
+          "rule_id": "100701",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Security-Auditing",
+            "data.win.system.channel": "Security",
+            "data.win.system.eventID": "4688"
+          },
+          "level": 8,
+          "mitre": [
+            "T1105"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1021.002",
+      "name": "Admin share command",
+      "expect": [
+        {
+          "rule_id": "100710",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Sysmon",
+            "data.win.system.channel": "Microsoft-Windows-Sysmon/Operational",
+            "data.win.system.eventID": "1"
+          },
+          "level": 6,
+          "mitre": [
+            "T1021.002"
+          ]
+        },
+        {
+          "rule_id": "100711",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Security-Auditing",
+            "data.win.system.channel": "Security",
+            "data.win.system.eventID": "4688"
+          },
+          "level": 6,
+          "mitre": [
+            "T1021.002"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1543.003",
+      "name": "Windows Service",
+      "expect": [
+        {
+          "rule_id": "61138",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.channel": "System",
+            "data.win.system.eventID": "7045"
+          },
+          "level": 5,
+          "mitre": [
+            "T1543.003"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T1218",
+      "name": "Wlrmdr indirect command execution (mapped to T1202)",
+      "expect": [
+        {
+          "rule_id": "100722",
+          "agent_name": "WS01",
+          "event_source": {
+            "data.win.system.providerName": "Microsoft-Windows-Security-Auditing",
+            "data.win.system.channel": "Security",
+            "data.win.system.eventID": "4688"
+          },
+          "level": 8,
+          "mitre": [
+            "T1202"
+          ]
+        }
+      ]
+    }
   ]
 }

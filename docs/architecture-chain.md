@@ -35,7 +35,7 @@ What the architecture contributed here: the firewall segment is the only place t
 
 | Layer | What happened | Evidence |
 | --- | --- | --- |
-| Wire | 12 failed SMB logons, `smbclient -L //10.10.30.149 -U 'fakeuser%WrongPass123'`, from the same Kali host | [test](detection-evidence-log.md#t1110-brute-force-over-smb) |
+| Wire | 12 failed SMB logons, `smbclient -L //10.10.30.149 -U 'fakeuser%<REDACTED_PASSWORD>'`, from the same Kali host | [test](detection-evidence-log.md#t1110-brute-force-over-smb) |
 | FW01 | The first 12 attempts timed out: OPNsense logged `match,pass,out` (the firewall passed the traffic), and WS01 dropped it, most likely at Windows Defender Firewall. Because the firewall did not block it, rule 100200 (which only matches blocked packets) never fired for this stage, and only the `emerging-scan` rule set is enabled on Suricata, so neither network layer raised an alert for it. SMB had to be opened on WS01 for Kali's IP with a temporary rule before the test could reach the logon stage at all | "Setup note" in the T1110 section |
 | WS01 | Once reachable, Security event 4625 recorded all 12 failures: source IP 10.10.50.181, workstation KALI, target user `fakeuser`, logon type 3, NTLM, status `0xc000006d` | section "Result: coverage by default rules" |
 | WAZUH | 11 alerts from rule 60122 (level 5) and one from rule 60204 (level 10, "Multiple Windows Logon Failures") at 18:15:42, already carrying `rule.mitre.id` T1110. No custom rule was needed | same section |

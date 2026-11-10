@@ -11,11 +11,11 @@ A home SOC lab where I attack a Windows domain, check what Wazuh detects out of 
 | | |
 | --- | --- |
 | Attack simulations | 15, mostly Atomic Red Team on a domain-joined Windows 11 workstation |
-| Custom detections | 23 Wazuh rules and 1 decoder (IDs 100100 to 100722) |
-| Gaps closed | 11 techniques where the defaults missed, mislabeled or under-rated the activity |
+| Custom detections | 26 Wazuh rules and 1 decoder (IDs 100100 to 100722) |
+| Specific behavior coverage | 11 custom detection rules implemented for specific threat behaviors |
 | Already covered | 4 techniques the default ruleset handled, confirmed and documented |
 | Evidence | 54 screenshots linked from the [evidence log](docs/detection-evidence-log.md) |
-| Verification | Three levels: 47 pattern samples, 78 engine cases (22 on real captured events, 56 synthetic) run inside a real Wazuh 4.14.8 manager on every push, and live attack tests with screenshots. [How and where each rule is verified](docs/detection-quality.md) |
+| Verification | 57 pattern samples, 101 engine cases (22 real captured events and 79 synthetic) run through a real Wazuh 4.14.8 manager, plus live lab matrices and screenshots. Engine cases validate pre-decoded event JSON schemas; live matrices verify agent collection. [How and where each rule is verified](docs/detection-quality.md) |
 
 ## Read these first
 
@@ -91,14 +91,17 @@ Log sources on DC01 and WS01 reach Wazuh through the Wazuh agent: Sysmon (sysmon
 | T1070.001 Clear Windows Event Logs | 63104, T1070 only (no sub-technique) | 100550, 100551, 100552 | `wevtutil.exe` is the only process matched, renamed copies included |
 | T1110 Brute Force | 60204, T1110 (60122 maps T1531) | None needed | Parent technique only, one source and one account tested |
 | T1059.001 PowerShell | 92057, level 12, T1059.001 | None needed | One encoded command tested; script block text (event 4104) not alerted |
-| T1087.001 Local Account Discovery | 92033, 92036, 92032 at level 3, no T1087.001 | 100600 to 100603 | Process commands only; PowerShell cmdlets such as Get-LocalUser are not matched |
+| T1087.001 Local Account Discovery | 92033, 92036, 92032 at level 3, no T1087.001 | 100600, 100602, 100603 | Local net user queries, cmdkey /list and query user/quser; PowerShell cmdlets such as Get-LocalUser are not matched |
+| T1087.002 Domain Account Discovery | No custom mapping | 100604 | net user /domain only; PowerShell cmdlets are not matched |
+| T1069.002 Domain Group Discovery | No custom mapping | 100605 | net group /domain only; PowerShell cmdlets are not matched |
+| T1201 Password Policy Discovery | No custom mapping | 100606 | net accounts queries only |
 | T1069.001 Permission Groups Discovery: Local Groups | Generic level 3 alerts (92032, 92033, 92036); the technique ID was not queried | 100601 | net localgroup and net group only; PowerShell Get-LocalGroup is not matched |
 | T1555.004 Credentials from Password Stores: Windows Credential Manager | Generic level 3 alerts (92032); the technique ID was not queried | 100602 | cmdkey /list only; other ways to read stored credentials are not matched |
 | T1033 System Owner/User Discovery | Generic level 3 alerts (92032); the technique ID was not queried | 100603 | query user and quser only; whoami.exe is not matched |
 | T1105 Ingress Tool Transfer | 67027, level 3, no technique; Defender block alerts at level 12 (62123) once the agent collects its channel | 100700, 100701 | Only certutil -urlcache and -verifyctl matched; when Defender blocks the process only 100701 fires |
 | T1021.002 SMB/Windows Admin Shares | 92052 (level 4) and 67027 (level 3), no T1021.002 | 100710, 100711 | Command lines only, tested against the local share; share access events 5140 and 5145 raised no alert |
 | T1543.003 Windows Service | 61138 (level 5) and 92307 (level 3), T1543.003 | None needed | Levels are low; only service creation with sc.exe was tested |
-| T1218 System Binary Proxy Execution | No alert with the technique | 100720, 100721, 100722 | 100720 and 100721 match wlrmdr.exe with -u; 100722 matches its child processes in the Security log only |
+| T1202 Indirect Command Execution | No alert with the technique | 100720, 100721, 100722 | Direct Wlrmdr process checks and child-process attribution; mapped to T1202 |
 
 The same data as an [ATT&CK Navigator layer](mitre/attack-navigator-layer.json): open the [Navigator](https://mitre-attack.github.io/attack-navigator/), choose **Open Existing Layer**, then **Upload from local**. Green is a custom rule, blue is a technique the defaults already covered. A per-rule view is in the [rule catalog](docs/rule-catalog.md), and one row per test is in the [test matrix](docs/test-matrix.md).
 
@@ -112,7 +115,7 @@ The same data as an [ATT&CK Navigator layer](mitre/attack-navigator-layer.json):
 ## Repository layout
 
 ```
-rules/local_rules.xml          23 custom rules
+rules/local_rules.xml          26 custom rules
 decoders/local_decoder.xml     Suricata EVE JSON decoder
 configs/                       Agent setting that collects Microsoft Defender events
 docs/detection-evidence-log.md Full write-up, one section per test, with screenshots
@@ -154,7 +157,7 @@ python3 scripts/validate_repo.py
 python3 -m unittest discover -s tests -v
 ```
 
-The pattern tests run each rule's field patterns against sample events in the form Wazuh stores them, including harmless near misses. They use Python's `re` in place of PCRE2 and do not evaluate parent conditions such as `if_group`. The engine workflow closes that gap: it installs Wazuh 4.14.8, loads the rules and sends every sample through the real `wazuh-analysisd`, including the frequency rule at 9 and 10 accounts. To run it on a test VM with a manager installed, apply `scripts/prepare_engine_tests.py`, then `sudo python3 tests/engine/run_engine_tests.py`.
+The pattern tests run each rule's field patterns against sample events in the form Wazuh stores them, including harmless near misses. They use Python's `re` in place of PCRE2 and do not evaluate parent conditions such as `if_group`. The engine tests send pre-decoded Windows event JSON into `wazuh-analysisd`; they validate rule behavior against those JSON schemas, not whether a Windows agent collected the event. Agent collection is verified separately through the live lab matrices, which compare endpoint event logs with the Wazuh alerts. The engine workflow installs Wazuh 4.14.8, loads the rules and tests all cases, including the frequency rule at 9 and 10 accounts. To run it on a test VM with a manager installed, apply `scripts/prepare_engine_tests.py`, then `sudo python3 tests/engine/run_engine_tests.py`.
 
 ## Limits
 
@@ -162,6 +165,7 @@ The pattern tests run each rule's field patterns against sample events in the fo
 - Several rules alert on every use of a tool, so legitimate admin work will also fire them. Each section of the log lists how to narrow that.
 - The rules match process command lines. The same actions through PowerShell cmdlets or APIs are not covered.
 - The renamed binary rules trust the original file name in the version resource. I did not test a copy with a modified resource.
+- The DC activity generator is restricted to `OU=LabTesting,DC=corp,DC=lab`; create that dedicated OU before installation. Its account searches and cleanup stay inside that OU. Activity scripts write success entries after verification and record failures in `errors.csv`.
 
 ## Author
 

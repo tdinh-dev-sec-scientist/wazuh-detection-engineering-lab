@@ -113,25 +113,57 @@ def main():
              f"only in quality page {sorted(quality_ids - set(rule_ids))}, "
              f"only in XML {sorted(set(rule_ids) - quality_ids)}")
 
-    # Captured engine fixtures must be well formed and refer to real rules.
+    # Captured engine fixtures may assert either a positive alert contract or
+    # an explicit negative target-rule expectation.
     for path in sorted((ROOT / "tests" / "engine" / "fixtures" / "real").glob("*.json")):
         try:
             fixture = json.loads(path.read_text(encoding="utf-8"))
             if fixture["rule"] not in rule_ids:
                 fail(f"{path.name}: unknown rule {fixture['rule']}")
-            if not fixture["event"] or "rule_id" not in fixture["expect"]:
-                fail(f"{path.name}: missing event or expectation")
-        except (ValueError, KeyError) as exc:
+            expect = fixture["expect"]
+            if not fixture["event"] or not isinstance(expect, dict):
+                fail(f"{path.name}: missing event or object expectation")
+            if "rule_id" in expect:
+                if expect["rule_id"] != fixture["rule"]:
+                    fail(f"{path.name}: positive expectation does not match fixture rule")
+                if "level" in expect and (isinstance(expect["level"], bool) or not isinstance(expect["level"], int)):
+                    fail(f"{path.name}: expectation level must be an integer")
+                if "mitre" in expect and not isinstance(expect["mitre"], list):
+                    fail(f"{path.name}: expectation MITRE IDs must be an array")
+            elif "not_rule_id" in expect:
+                if expect["not_rule_id"] != fixture["rule"]:
+                    fail(f"{path.name}: negative expectation does not name fixture rule")
+            else:
+                fail(f"{path.name}: expectation must contain rule_id or not_rule_id")
+        except (ValueError, KeyError, TypeError) as exc:
             fail(f"{path.name}: {exc}")
 
-    # The live regression list may only name custom rules that exist.
+    # Live expectations require a complete alert contract for every expected rule.
     try:
         live = json.loads((ROOT / "tests" / "live" / "expected.json").read_text(encoding="utf-8"))
         for test in live["tests"]:
-            for rid in test["expect"]:
+            if not isinstance(test.get("expect"), list) or not test["expect"]:
+                fail(f"tests/live/expected.json: {test.get('id')} has no alert contracts")
+                continue
+            for expectation in test["expect"]:
+                required = ("rule_id", "agent_name", "event_source", "level", "mitre")
+                missing = [key for key in required if key not in expectation]
+                if missing:
+                    fail(f"tests/live/expected.json: {test['id']} missing {', '.join(missing)}")
+                    continue
+                rid = str(expectation["rule_id"])
                 if rid.startswith("100") and rid not in rule_ids:
                     fail(f"tests/live/expected.json: {test['id']} expects unknown rule {rid}")
-    except (OSError, ValueError, KeyError) as exc:
+                if not isinstance(expectation["event_source"], dict) or not expectation["event_source"]:
+                    fail(f"tests/live/expected.json: {test['id']} has no event source")
+                if isinstance(expectation["level"], bool) or not isinstance(expectation["level"], int):
+                    fail(f"tests/live/expected.json: {test['id']} level must be an integer")
+                if not isinstance(expectation["mitre"], list):
+                    fail(f"tests/live/expected.json: {test['id']} MITRE must be an array")
+                for technique in expectation["mitre"]:
+                    if not re.fullmatch(r"T\d{4}(\.\d{3})?", str(technique)):
+                        fail(f"tests/live/expected.json: {test['id']} has invalid MITRE ID {technique!r}")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
         fail(f"tests/live/expected.json: {exc}")
 
     print(f"{len(rule_ids)} rules, {len(techniques)} techniques, "

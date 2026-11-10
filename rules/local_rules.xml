@@ -5,8 +5,9 @@
   run /var/ossec/bin/wazuh-analysisd -t, then restart wazuh-manager.
   The Suricata decoder lives in decoders/local_decoder.xml.
 
-  Every rule ID maps to a test in docs/detection-evidence-log.md.
-  Lab specific values: 10.10.0.0/16 in rule 100200 and the NetBIOS name CORP in rule 100450.
+  Existing rule IDs map to evidence in docs/detection-evidence-log.md.
+  New rules 100604-100606 need matching tests and evidence before merge.
+  Lab-specific values: 10.10.0.0/16 in rule 100200; DC01 and CORP in rules 100400 and 100450.
 -->
 
 <!-- T1082 System Information Discovery -->
@@ -49,12 +50,16 @@
   </rule>
 </group>
 
-<!-- T1136.002 Domain Account Creation (burst of 10 within 60 seconds) -->
+<!-- T1136.002 Domain Account Creation (burst of 10 within 60 seconds on DC01) -->
+<!-- Wazuh frequency is per-agent by default. Group by target domain to separate domain account events from local account events. -->
 <group name="local,windows,ad,">
   <rule id="100400" level="10" frequency="10" timeframe="60">
     <if_matched_sid>60109</if_matched_sid>
-    <same_field>win.system.eventID</same_field>
-    <description>Mass account creation detected: 10+ accounts created within 60 seconds</description>
+    <field name="win.system.channel">^Security$</field>
+    <field name="win.system.computer" type="pcre2">(?i)^DC01(?:\.corp\.lab)?$</field>
+    <field name="win.eventdata.targetDomainName" type="pcre2">(?i)^CORP$</field>
+    <same_field>win.eventdata.targetDomainName</same_field>
+    <description>Mass domain account creation detected on DC01: 10+ accounts in 60 seconds for the same target domain</description>
     <mitre>
       <id>T1136.002</id>
     </mitre>
@@ -79,8 +84,10 @@
   <rule id="100450" level="8">
     <if_sid>60109</if_sid>
     <field name="win.system.eventID">^4720$</field>
-    <field name="win.eventdata.targetDomainName" type="pcre2">^(?!CORP$).+</field>
-    <description>Local user account created on a workstation ($(win.eventdata.targetUserName))</description>
+    <field name="win.system.channel">^Security$</field>
+    <field name="win.system.computer" type="pcre2" negate="yes">(?i)^DC01(?:\.corp\.lab)?$</field>
+    <field name="win.eventdata.targetDomainName" type="pcre2">(?i)^(?!CORP$).+</field>
+    <description>Local user account created outside the domain controller ($(win.eventdata.targetUserName))</description>
     <mitre>
       <id>T1136.001</id>
     </mitre>
@@ -108,14 +115,45 @@
   </rule>
 </group>
 
-<!-- T1087.001, T1069.001, T1555.004, T1033 discovery commands.
-     Wazuh stores the command line JSON escaped, so quotes and backslashes are matched loosely.
-     Rules with the same parent are evaluated in file order and the first match wins. -->
+<!-- T1087.001 Local Account Discovery, T1087.002 Domain Account Discovery,
+     T1069.001 Local Group Discovery, T1069.002 Domain Group Discovery,
+     T1201 Password Policy Discovery, T1555.004, T1033 discovery commands.
+     Domain-specific rules precede local rules because same-parent rules are evaluated in file order. -->
 <group name="local,windows,discovery,">
+  <rule id="100604" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(user|users)(?!.*\s/(add|delete)(\s|$)).*\s/domain(\s|$)</field>
+    <description>Sysmon: domain account enumeration with net.exe</description>
+    <mitre>
+      <id>T1087.002</id>
+    </mitre>
+  </rule>
+
+  <rule id="100605" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+group(?!.*\s/(add|delete)(\s|$)).*\s/domain(\s|$)</field>
+    <description>Sysmon: domain group enumeration with net.exe</description>
+    <mitre>
+      <id>T1069.002</id>
+    </mitre>
+  </rule>
+
+  <rule id="100606" level="6">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+accounts(?:\s+/domain)?\s*$</field>
+    <description>Sysmon: password policy queried with net accounts</description>
+    <mitre>
+      <id>T1201</id>
+    </mitre>
+  </rule>
+
   <rule id="100600" level="6">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">(?i)\\net1?\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(?!.*\s/(add|delete)(\s|$))(user|users|accounts)(\s|$)</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(user|users)(?!.*\s/(add|delete|domain)(\s|$))(\s|$)</field>
     <description>Sysmon: local account enumeration with net.exe</description>
     <mitre>
       <id>T1087.001</id>
@@ -124,9 +162,9 @@
 
   <rule id="100601" level="6">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">(?i)\\net1?\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(?!.*\s/(add|delete)(\s|$))(localgroup|group)(\s|$)</field>
-    <description>Sysmon: local group enumeration with net.exe</description>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\net1?\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bnet1?(\.exe)?[\\"]*\s+(localgroup|group)(?!.*\s/(add|delete|domain)(\s|$))(\s|$)</field>
+    <description>Sysmon: local group enumeration with net.exe, excluding /domain queries</description>
     <mitre>
       <id>T1069.001</id>
     </mitre>
@@ -134,7 +172,7 @@
 
   <rule id="100602" level="6">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">(?i)\\cmdkey\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\cmdkey\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)\s/list</field>
     <description>Sysmon: stored credentials listed with cmdkey.exe</description>
     <mitre>
@@ -144,7 +182,7 @@
 
   <rule id="100603" level="6">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">(?i)\\(query|quser)\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\(query|quser)\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)(\suser(\s|$)|quser)</field>
     <description>Sysmon: logged on users enumerated</description>
     <mitre>
@@ -157,8 +195,9 @@
 <group name="local,windows,command_and_control,">
   <rule id="100700" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)certutil(\.exe)?\W+.*[-/](urlcache|verifyctl)(\s|$)</field>
-    <description>Sysmon: certutil used to download a file</description>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\certutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s[-/](urlcache|verifyctl)(\s|$)</field>
+    <description>Sysmon: certutil.exe invoked with a download or verification switch</description>
     <mitre><id>T1105</id></mitre>
   </rule>
   <rule id="100701" level="8">
@@ -185,25 +224,27 @@
   </rule>
 </group>
 
-<!-- T1218 System Binary Proxy Execution (wlrmdr.exe) -->
-<group name="local,windows,defense_evasion,">
+<!-- T1202 Indirect Command Execution (wlrmdr.exe) -->
+<group name="local,windows,stealth,">
   <rule id="100720" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)wlrmdr(\.exe)?\W.*[-/]u(\s|$)</field>
-    <description>Sysmon: wlrmdr.exe used to launch another program</description>
-    <mitre><id>T1218</id></mitre>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\wlrmdr\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s[-/]u(\s|$)</field>
+    <description>Sysmon: wlrmdr.exe invoked with its -u argument (indirect command execution)</description>
+    <mitre><id>T1202</id></mitre>
   </rule>
   <rule id="100721" level="8">
     <if_sid>67027</if_sid>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)wlrmdr(\.exe)?\W.*[-/]u(\s|$)</field>
-    <description>Security 4688: wlrmdr.exe used to launch another program</description>
-    <mitre><id>T1218</id></mitre>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\\\wlrmdr\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s[-/]u(\s|$)</field>
+    <description>Security 4688: wlrmdr.exe created with its -u argument (indirect command execution)</description>
+    <mitre><id>T1202</id></mitre>
   </rule>
   <rule id="100722" level="8">
     <if_sid>67027</if_sid>
-    <field name="win.eventdata.parentProcessName" type="pcre2">(?i)\\wlrmdr\.exe$</field>
+    <field name="win.eventdata.parentProcessName" type="pcre2">(?i)\\\\wlrmdr\.exe$</field>
     <description>Security 4688: process started by wlrmdr.exe</description>
-    <mitre><id>T1218</id></mitre>
+    <mitre><id>T1202</id></mitre>
   </rule>
 </group>
 
@@ -249,3 +290,4 @@
     <group>defense_evasion,</group>
   </rule>
 </group>
+

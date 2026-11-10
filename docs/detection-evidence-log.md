@@ -476,7 +476,7 @@ After restarting the manager and rerunning `wevtutil cl Application`, the query 
 
 ## T1110 Brute Force over SMB
 
-The test was 12 failed SMB logons from Kali (10.10.50.181) to WS01 with `smbclient -L //10.10.30.149 -U 'fakeuser%WrongPass123'`. The account does not exist, so every attempt is a failure. No Atomic test was used.
+The test was 12 failed SMB logons from Kali (10.10.50.181) to WS01 with `smbclient -L //10.10.30.149 -U 'fakeuser%<REDACTED_PASSWORD>'`. The account does not exist, so every attempt is a failure. No Atomic test was used.
 
 ### Setup note: the first attempt never reached the logon stage
 

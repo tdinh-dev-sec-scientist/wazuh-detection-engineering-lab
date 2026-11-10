@@ -79,23 +79,38 @@ def load_real_cases():
     return cases
 
 
+def _mitre_ids(rule):
+    value = (rule.get("mitre") or {}).get("id", [])
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    return [str(value)]
+
+
 def evaluate(case, data):
     out = data.get("output", {})
     rule = out.get("rule") or {}
     fired = str(rule.get("id", ""))
-    level = rule.get("level")
-    mitre = (rule.get("mitre") or {}).get("id", [])
+    try:
+        level = int(rule.get("level")) if rule.get("level") is not None else None
+    except (TypeError, ValueError):
+        level = None
+    mitre = _mitre_ids(rule)
     expect = case["expect"]
     problems = []
-    if "rule_id" in expect and fired != expect["rule_id"]:
+    if "rule_id" in expect and fired != str(expect["rule_id"]):
         problems.append(f"expected rule {expect['rule_id']}, got {fired or 'none'}")
-    if "not_rule_id" in expect and fired == expect["not_rule_id"]:
+    if "not_rule_id" in expect and fired == str(expect["not_rule_id"]):
         problems.append(f"rule {fired} fired but should not have")
-    if "level" in expect and level != expect["level"]:
+    if "level" in expect and level != int(expect["level"]):
         problems.append(f"expected level {expect['level']}, got {level}")
-    for technique in expect.get("mitre", []):
-        if technique not in mitre:
-            problems.append(f"technique {technique} missing, got {mitre}")
+    if "mitre" in expect:
+        expected_mitre = [str(item) for item in expect["mitre"]]
+        if mitre != expected_mitre:
+            problems.append(f"expected exact MITRE IDs {expected_mitre}, got {mitre}")
     if problems:
         brief = {k: v for k, v in out.items() if k in ("predecoder", "decoder", "data", "rule")}
         problems.append("output " + json.dumps(brief, separators=(",", ":"))[:500])
@@ -109,6 +124,13 @@ def main():
     args = parser.parse_args()
 
     cases = build_cases() + load_real_cases()
+    for case in cases:
+        expect = case["expect"]
+        if case["kind"] == "synthetic" and "rule_id" in expect:
+            if "level" not in expect or "mitre" not in expect:
+                raise ValueError(f"synthetic positive lacks level/MITRE oracle: {case['name']}")
+        if "mitre" in expect and not isinstance(expect["mitre"], list):
+            raise ValueError(f"MITRE oracle must be an array: {case['name']}")
     logtest = Logtest(args.socket)
     results = []
     for case in cases:
@@ -127,7 +149,11 @@ def main():
 
     lines = ["| Case | Kind | Expected | Fired | Level | Result |", "| --- | --- | --- | --- | --- | --- |"]
     for r in results:
-        expected = r["expect"].get("rule_id") or f"not {r['expect'].get('not_rule_id')}"
+        expected = r["expect"].get("rule_id")
+        if expected:
+            expected = f"{expected} / level {r['expect'].get('level')} / MITRE {r['expect'].get('mitre', [])}"
+        else:
+            expected = f"not {r['expect'].get('not_rule_id')}"
         mark = "pass" if r["passed"] else "FAIL: " + "; ".join(r["problems"])
         lines.append(f"| {r['case']} | {r['kind']} | {expected} | {r['fired'] or 'none'} | {r['level'] if r['level'] is not None else ''} | {mark} |")
     passed = sum(1 for r in results if r["passed"])
