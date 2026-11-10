@@ -102,7 +102,17 @@
     {
       "techniqueID": "T1087.001",
       "color": "#2e8b57",
-      "comment": "Custom rule 100600",
+      "comment": "Custom rule 100600 (local account discovery)",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1087.002",
+      "score": 100,
+      "color": "#2e8b57",
+      "comment": "Custom rule 100604 (domain account discovery)",
       "enabled": true,
       "metadata": [],
       "links": [],
@@ -111,7 +121,27 @@
     {
       "techniqueID": "T1069.001",
       "color": "#2e8b57",
-      "comment": "Custom rule 100601",
+      "comment": "Custom rule 100601 (local group discovery)",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1069.002",
+      "score": 100,
+      "color": "#2e8b57",
+      "comment": "Custom rule 100605 (domain group discovery)",
+      "enabled": true,
+      "metadata": [],
+      "links": [],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1201",
+      "score": 100,
+      "color": "#2e8b57",
+      "comment": "Custom rule 100606 (password policy discovery)",
       "enabled": true,
       "metadata": [],
       "links": [],
@@ -163,9 +193,10 @@
       "showSubtechniques": true
     },
     {
-      "techniqueID": "T1218",
+      "techniqueID": "T1202",
+      "score": 100,
       "color": "#2e8b57",
-      "comment": "Custom rules 100720, 100721, 100722",
+      "comment": "Custom rules 100720, 100721, 100722 (Wlrmdr indirect command execution)",
       "enabled": true,
       "metadata": [],
       "links": [],

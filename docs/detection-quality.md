@@ -1,13 +1,13 @@
 # Detection quality
 
-What the 23 rules have been shown to do, how each claim was checked, and where they fail. Alert counts in this lab say nothing about accuracy, so this page lists expected against observed results, negative tests, and the misses I know about.
+What the 26 rules have been shown to do, how each claim was checked, and where they fail. Alert counts in this lab say nothing about accuracy, so this page lists expected against observed results, negative tests, and the misses I know about.
 
 ## How a rule is verified
 
 | Level | What it proves | Where it runs | What it cannot prove |
 | --- | --- | --- | --- |
-| 1. Pattern test | A rule's field patterns match the sample and skip near misses | `validate` workflow, [tests/test_rules.py](../tests/test_rules.py), 47 samples (25 positive, 22 negative) | Parent rules, decoders, frequency and the order of sibling rules |
-| 2. Engine test | The full event reaches the intended rule inside a real Wazuh 4.14.8 `wazuh-analysisd`, with parents, decoders and thresholds | `engine` workflow, [tests/engine](../tests/engine), 78 cases (22 real captured events, 56 synthetic) | The Windows eventchannel decoder (see below) and the quality of the sample |
+| 1. Pattern test | A rule's field patterns match the sample and skip near misses | `validate` workflow, [tests/test_rules.py](../tests/test_rules.py), 57 samples (28 positive, 29 negative) | Parent rules, decoders, frequency and the order of sibling rules |
+| 2. Engine test | The full event reaches the intended rule inside a real Wazuh 4.14.8 `wazuh-analysisd`, with parents, decoders and thresholds | `engine` workflow, [tests/engine](../tests/engine), 101 cases (22 real captured events, 79 synthetic) | The Windows eventchannel decoder (see below) and the quality of the sample |
 | 3. Live test | The attack ran in the lab and the alert appeared in the dashboard | [Evidence log](detection-evidence-log.md), 54 screenshots | Repeatability. Each live test was run once or a few times |
 
 The engine job installs the Wazuh manager package, copies in `rules/` and `decoders/`, and sends every case through `wazuh-logtest`. It also checks the statements this repository makes about Wazuh's default rules against the stock ruleset in the same package ([baseline_claims.py](../tests/engine/baseline_claims.py)).
@@ -34,13 +34,16 @@ One limit shapes level 2. `wazuh-logtest` does not run the Windows eventchannel 
 | 100601 | 2 / 1 | yes | yes | |
 | 100602 | 1 / 1 | yes | yes | |
 | 100603 | 2 / 1 | yes | yes | |
-| 100700 | 2 / 1 | yes | **no, only a synthetic echo** | Sysmon never logged the Defender-blocked process |
+| 100604 | 1 / 1 | case added; execution not verified | no | Domain account query: net user /domain; T1087.002 |
+| 100605 | 1 / 1 | case added; execution not verified | no | Domain group query: net group /domain; T1069.002 |
+| 100606 | 1 / 1 | case added; execution not verified | no | Password policy query: net accounts; T1201 |
+| 100700 | 2 / 1 | case updated; execution not verified | no | Captured fixture is a benign echo; Sysmon never logged the Defender-blocked process |
 | 100701 | 1 / 0 | yes | yes | |
 | 100710 | 2 / 2 | yes | yes | |
 | 100711 | 1 / 0 | yes | yes | |
-| 100720 | 1 / 1 | yes | yes | |
-| 100721 | 1 / 0 | yes | yes | |
-| 100722 | 1 / 1 | yes | yes | |
+| 100720 | 1 / 1 | case updated; execution not verified | no, updated image rule not rechecked | Requires Wlrmdr image or verified original file name |
+| 100721 | 1 / 0 | case updated; execution not verified | no, updated image rule not rechecked | Requires Wlrmdr image or verified original file name |
+| 100722 | 1 / 1 | case updated; execution not verified | no, updated rule not rechecked | Requires a Security 4688 child event; mapped to T1202 |
 
 Rules with 0 negative samples are the Security 4688 twins of a Sysmon rule. They repeat the same pattern, so the negatives of the Sysmon rule apply.
 
@@ -60,7 +63,7 @@ Rules with 0 negative samples are the Security 4688 twins of a Sysmon rule. They
 | T1087.001 Local Account Discovery (and T1069.001, T1555.004, T1033) | alert with technique | Partial: generic level 3 alerts, no sub-technique | 100600 to 100603 fired, 14 hits | PowerShell cmdlets, `whoami.exe` |
 | T1105 Ingress Tool Transfer | alert | Partial: generic level 3; Defender detection never reached Wazuh until the agent collected its channel | 100701 fired; 100700 stayed silent in real runs | Only `certutil -urlcache` and `-verifyctl` |
 | T1021.002 SMB/Windows Admin Shares | alert with technique | Partial: levels 3 and 4, no T1021.002 | 100710 and 100711 fired | Share access events 5140 and 5145 raised no alert |
-| T1218 System Binary Proxy Execution | alert with technique | Missed: no alert with T1218 | 100720, 100721, 100722 fired | One binary only, `wlrmdr.exe` |
+| T1202 Indirect Command Execution | alert with technique | Missed: no alert with T1202 | Rules 100720–100722 map Wlrmdr behavior to T1202; current image-validation behavior needs a live recheck | Direct Wlrmdr image and parent-process paths only |
 | T1547.001 Registry Run Keys | alert | Covered: 92302, level 6 | none needed | |
 | T1110 Brute Force | alert | Covered by 60204 (T1110); the 11 x 60122 alerts map to T1531, the wrong technique | none needed | Parent technique, one source, one account |
 | T1059.001 PowerShell | alert | Covered: 92057, level 12 | none needed | Script block text (4104) not alerted |
@@ -71,7 +74,7 @@ Totals: of 15 tests, the defaults fully covered 4, partly covered 7 (an alert, b
 ## Negative tests
 
 - Level 1 and 2: 22 negative samples, plus 4 more at level 2 (a Suricata `stats` event, a passed firewall packet, a source outside the lab range, 9 account creations).
-- Level 3: five harmless commands run with the T1218 test: `schtasks /query /fo LIST`, `wevtutil qe Application /c:1 /f:text`, `certutil -hashfile ... SHA256`, `cmd.exe /c echo \\server\share\file.txt` and `cmd.exe /c echo wlrmdr`. None of the rules built for them alerted.
+- Level 3: five harmless commands run with the Wlrmdr test: `schtasks /query /fo LIST`, `wevtutil qe Application /c:1 /f:text`, `certutil -hashfile ... SHA256`, `cmd.exe /c echo \\server\share\file.txt` and `cmd.exe /c echo wlrmdr`. None of the rules built for them alerted.
 - Not done: a baseline of normal activity over several days. That is why this repository publishes no precision or false positive rate. A fair number needs days of ordinary administration, software updates and logons on WS01 and DC01, with every alert triaged.
 
 ## Known misses
@@ -85,7 +88,7 @@ Totals: of 15 tests, the defaults fully covered 4, partly covered 7 (an alert, b
 
 ## Latency
 
-Two measurements: the Security 4688 event behind rule 100701 was logged at 19:05:30 and the alert was stamped 19:05:57 (27 seconds). The Defender event behind rule 62123 was logged at 19:14:26 and alerted at 19:14:54 (28 seconds). Sysmon alerts appeared in the dashboard minutes later than the Security alerts in the T1218 test, so a query run right after a test can look empty. Two data points are not a latency distribution.
+Two measurements: the Security 4688 event behind rule 100701 was logged at 19:05:30 and the alert was stamped 19:05:57 (27 seconds). The Defender event behind rule 62123 was logged at 19:14:26 and alerted at 19:14:54 (28 seconds). Sysmon alerts appeared in the dashboard minutes later than the Security alerts in the Wlrmdr test, so a query run right after a test can look empty. Two data points are not a latency distribution.
 
 ## Corrections found while checking this page
 
