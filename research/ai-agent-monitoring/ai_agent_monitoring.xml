@@ -1,0 +1,51 @@
+<group name="ai_agent,claude_code,">
+
+  <rule id="100800" level="3">
+    <if_sid>91802, 91803,91805,91806,91807,91809,91810,91811,91812,91815,91816,91818,91819,91822,91824,91825,91826,91827,91829,91830,91831,91832,91833,91834,91835,91836,91837,91838,91839,91840,91841,91842,91843,91845,91846</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">claude-pwd-ps-\d+</field>
+    <description>AI agent shell: Claude Code executed a PowerShell command</description>
+    <group>ai_agent_shell,</group>
+  </rule>
+
+  <rule id="100801" level="10">
+    <if_sid>100800</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\b(whoami|net1?(\.exe)?\s+(localgroup|group|user)|nltest|dsquery|Get-AD[A-Za-z]+|Get-LocalGroupMember|Win32_ComputerSystem|Win32_UserAccount|cmdkey|klist|setspn|quser)\b</field>
+    <description>AI agent drift: Claude Code shell ran account/domain discovery</description>
+    <mitre>
+      <id>T1033</id>
+      <id>T1069</id>
+      <id>T1087</id>
+      <id>T1482</id>
+    </mitre>
+    <group>ai_agent_drift,</group>
+  </rule>
+
+  <rule id="100802" level="3">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.parentCommandLine" type="pcre2">CLAUDE_CODE_SHELL_LAUNCHER_SCRIPT</field>
+    <description>AI agent process: Claude Code shell started $(win.eventdata.image)</description>
+    <group>ai_agent_shell,</group>
+  </rule>
+
+  <rule id="100803" level="10">
+    <if_sid>100802</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\(whoami|net1?|nltest|dsquery|quser|cmdkey|klist|setspn|systeminfo)\.exe$</field>
+    <description>AI agent drift: Claude Code shell started discovery tool $(win.eventdata.image)</description>
+    <mitre>
+      <id>T1033</id>
+      <id>T1069</id>
+      <id>T1482</id>
+    </mitre>
+    <group>ai_agent_drift,</group>
+  </rule>
+
+  <rule id="100804" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\nltest\.exe$</field>
+    <description>Domain trust/DC discovery: nltest.exe started by $(win.eventdata.parentProcessName) (4688 fallback for Sysmon gap)</description>
+    <mitre>
+      <id>T1482</id>
+    </mitre>
+  </rule>
+
+</group>
