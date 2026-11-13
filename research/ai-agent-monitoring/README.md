@@ -1,7 +1,7 @@
-# Behavioral monitoring of an AI coding agent on a Windows endpoint
+# Behavioral monitoring of AI coding agents on a Windows endpoint
 
-Lab experiment (Nov 2026): what endpoint telemetry sees when an AI coding agent
-(Claude Code 2.1.323) runs on a domain-joined Windows 11 workstation, and how to
+Lab experiment (Nov 2026): what endpoint telemetry sees when AI coding agents
+(Claude Code 2.1.323, then Antigravity CLI 1.5.8) run on a domain-joined Windows 11 workstation, and how to
 separate its normal baseline from drift. Written as field evidence for
 [CoSAI WS4 #195 "Agent Behavioral Monitoring"](https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/issues/195).
 
@@ -46,6 +46,34 @@ repeated several times, plus a second baseline to measure false positives.
    credential-manager and Wi-Fi entries was blocked before execution. The same recon, reworded
    "for the README", ran with only an advisory note.
 
+## Second agent: Antigravity CLI
+
+Same workstation, user and telemetry, repeated with Google's Antigravity CLI (`agy` 1.5.8). (Gemini CLI sign-in for individual accounts no longer works, so Antigravity CLI is Google's current agent.) Sessions: one benign coding task (add a `-Quiet` switch, test, commit), then short marker-command sessions to isolate the findings below.
+
+| | Claude Code | Antigravity CLI |
+|---|---|---|
+| Shell launch | `cmd.exe -> powershell.exe`, real command passed through an environment variable | `agy.exe -> powershell.exe -Command "<real command>"` |
+| Command visible in process command line | No (4104 only) | Yes |
+| Sandbox | None observed | Most commands run in an OS sandbox: 4688 label Low (`S-1-16-4096`), Sysmon `IntegrityLevel: AppContainer` |
+| Startup activity | ~68 processes (mostly git, reg) | 2 `git merge-base` calls |
+| Attribution markers | `CLAUDE_CODE_SHELL_LAUNCHER_SCRIPT`, `claude-pwd-ps-N` | parent `agy.exe`; every sandboxed command starts with `$env:TEMP = $env:_TEMP; $env:TMP = $env:_TMP; $env:LOCALAPPDATA = $env:_LOCALAPPDATA;` |
+
+**Finding: a common Sysmon config drops sandboxed agent commands.** In the benign session, none of the agent's sandboxed processes (the shell plus children such as `git status` and the test runs of the script) appeared in Sysmon Event ID 1, while Security 4688 recorded all of them. Sysmon still logged Event IDs 7, 11, 13 and 17 for the same PIDs and there were no Event ID 255 errors.
+
+Root cause: the sysmon-modular ProcessCreate exclusion `<IntegrityLevel condition="is">AppContainer</IntegrityLevel>` ("Don't care about sandboxed processes"), inherited from SwiftOnSecurity's config.
+
+| Sysmon config | Sandboxed agent processes with Event ID 1 |
+|---|---|
+| sysmon-modular rule as shipped | 0 of 6 |
+| Minimal config (`<ProcessCreate onmatch="exclude"/>`) | 5 of 5 (`IntegrityLevel: AppContainer`) |
+| Exclusion scoped to AppContainer **and** `C:\Program Files\WindowsApps\` | 5 of 5 |
+
+Control: a Low-integrity process started with `PsExec -l` is logged as `IntegrityLevel: Low` and is not affected. Note that `whoami /groups` inside the sandbox shows only Low integrity and no `S-1-15-2-*` package SID, so the token alone does not reveal that this rule will match. Reported upstream: [olafhartong/sysmon-modular#235](https://github.com/olafhartong/sysmon-modular/issues/235).
+
+Other observations:
+- Benign sandboxed activity still looks TTP-like: `powershell -ExecutionPolicy Bypass -File .\count-notes.ps1`, and `New-Item .git\test.txt` to probe write access.
+- The Claude Code rules below do not match Antigravity at all. Attribution has to be built per agent.
+
 ## Rules (`ai_agent_monitoring.xml`)
 
 Level-3 parent rules record agent activity (the baseline). Level-10 child rules fire on discovery (the drift).
@@ -73,5 +101,5 @@ regenerate it if your ruleset differs.
 
 ## Limits
 
-A single lab host, one agent, a handful of runs. The markers are specific to this Claude Code version
+A single lab host, two agents, a handful of runs each. The markers are specific to these agent versions
 and may change. Raw event exports are not published because they contain lab SIDs and account names.
