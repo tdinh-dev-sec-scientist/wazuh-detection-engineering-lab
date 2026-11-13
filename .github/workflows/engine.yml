@@ -66,6 +66,8 @@ jobs:
           out = pathlib.Path("replay-input.jsonl").open("w")
           for f in sorted(pathlib.Path("tests/engine/fixtures/real").glob("*.json")):
               x = json.loads(f.read_text())
+              if "level" not in x.get("expect", {}):
+                  continue
               out.write(json.dumps({"rule": x["rule"], "level": x["expect"]["level"], "event": x["event"],
                                     "repeat": x.get("repeat", 1), "count": 1}) + "\n")
           PY
