@@ -23,7 +23,7 @@ All custom rules in [`rules/local_rules.xml`](../rules/local_rules.xml). The las
 | 100604 | 6 | T1087.002 | Sysmon event 1 | Sysmon: domain account enumeration with net.exe | [Synthetic cases](../tests/cases.py) |
 | 100605 | 6 | T1069.002 | Sysmon event 1 | Sysmon: domain group enumeration with net.exe | [Synthetic cases](../tests/cases.py) |
 | 100606 | 6 | T1201 | Sysmon event 1 | Sysmon: password policy queried with net accounts | [Synthetic cases](../tests/cases.py) |
-| 100700 | 8 | T1105 | Sysmon event 1 | Sysmon: certutil used to download a file | [T1105 Ingress Tool Transfer](detection-evidence-log.md#t1105-ingress-tool-transfer) |
+| 100700 | 12 | T1105 | Sysmon event 1 | Sysmon: certutil used to download a file | [T1105 Ingress Tool Transfer](detection-evidence-log.md#t1105-ingress-tool-transfer) |
 | 100701 | 8 | T1105 | Security 4688 | Security 4688: certutil used to download a file | [T1105 Ingress Tool Transfer](detection-evidence-log.md#t1105-ingress-tool-transfer) |
 | 100710 | 6 | T1021.002 | Sysmon event 1 | Sysmon: command line uses a Windows administrative share | [T1021.002 SMB/Windows Admin Shares](detection-evidence-log.md#t1021002-smbwindows-admin-shares) |
 | 100711 | 6 | T1021.002 | Security 4688 | Security 4688: command line uses a Windows administrative share | [T1021.002 SMB/Windows Admin Shares](detection-evidence-log.md#t1021002-smbwindows-admin-shares) |

@@ -193,8 +193,8 @@
 
 <!-- T1105 Ingress Tool Transfer. 100700 reads Sysmon, 100701 reads Security 4688. -->
 <group name="local,windows,command_and_control,">
-  <rule id="100700" level="8">
-    <if_group>sysmon_event1</if_group>
+  <rule id="100700" level="12">
+    <if_sid>61603, 92075</if_sid>
     <field name="win.eventdata.image" type="pcre2">(?i)\\\\certutil\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)\s[-/](urlcache|verifyctl)(\s|$)</field>
     <description>Sysmon: certutil.exe invoked with a download or verification switch</description>
