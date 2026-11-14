@@ -52,7 +52,7 @@ Preferred changes, in this order: aggregate (one level 8 alert when four discove
 
 ## Proving nothing was lost
 
-1. **Engine tests.** The `engine` workflow runs 78 cases on every push, 22 of them real events captured from alerts. A tuned rule must still fire on every real fixture.
+1. **Engine tests.** The `engine` workflow runs 101 cases on every push, 22 of them real events captured from alerts. A tuned rule must still fire on every real fixture.
 2. **Replay on the baseline week.** The same workflow replays `baseline/*-events.jsonl` through the tuned rules, so the before and after counts come from identical traffic.
 3. **Live regression.** On WS01 run `scripts\Run-AtomicRegression.ps1`, then on WAZUH run `scripts/regression_check.py`. All 15 live tests must raise their expected alerts. The runner leaves 90 seconds between tests on purpose, because a burst can fill the agent queue and lose detections.
 
